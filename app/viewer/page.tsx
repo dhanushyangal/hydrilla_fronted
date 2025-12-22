@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { fetchStatus, Job, getGlbUrl, getPreviewImageUrl } from "../../lib/api";
 import { ThreeViewer } from "../../components/ThreeViewer";
 import { JobStatusBadge } from "../../components/JobStatusBadge";
@@ -9,7 +9,7 @@ import { useSearchParams } from "next/navigation";
 
 const POLL_INTERVAL = 5000;
 
-export default function ViewerPage() {
+function ViewerContent() {
   const searchParams = useSearchParams();
   const jobId = searchParams.get("jobId") || "";
   const mode = (searchParams.get("mode") || "text-to-3d") as "text-to-3d" | "image-to-3d";
@@ -123,6 +123,14 @@ export default function ViewerPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ViewerPage() {
+  return (
+    <Suspense fallback={<div className="text-sm text-slate-600">Loading...</div>}>
+      <ViewerContent />
+    </Suspense>
   );
 }
 
