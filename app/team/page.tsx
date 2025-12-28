@@ -18,38 +18,41 @@ interface TeamMember {
 const teamMembers: TeamMember[] = [
   {
     id: "1",
-    name: "Dharani Kumar",
-    role: "Team Member",
-    image: "/WhatsApp Image 2025-08-30 at 1.22.42 AM.jpeg",
-    connect: "https://linkedin.com"
+    name: "Tharak Nagaveti",
+    role: "Co-Founder & CEO",
+    image: "/Tharakhydrilla1.png",
+    connect: "https://www.linkedin.com/in/tharak-nagaveti-8a5270187/"
+    
   },
   {
     id: "2",
-    name: "Rishik Kalyan",
-    role: "Team Member",
-    image: "/WhatsApp Image 2025-08-30 at 1.26.51 AM.jpeg",
-    connect: "https://linkedin.com"
+    name: "Dharani Kumar",
+    role: "Co-Founder & CTO",
+    image: "/WhatsApp Image 2025-08-30 at 1.22.42 AM.jpeg",
+    connect: "https://www.linkedin.com/in/yengala-dharani-kumar-4b7948221/"
+    
   },
   {
     id: "3",
-    name: "Aditya Sontena",
-    role: "Team Member",
-    image: "/WhatsApp Image 2025-08-30 at 1.54.55 AM.jpeg",
-    connect: "https://linkedin.com"
+    name: "Tejesh Varma",
+    role: "Co-Founder & CGO",
+    image: "/WhatsApp Image 2025-08-30 at 12.11.21 AM.jpeg",
+    connect: "https://www.linkedin.com/in/yenugudhati-tejesh-varma-478b51343/"
+    
   },
   {
     id: "4",
-    name: "Tejesh Varma",
+    name: "Aditya Sontena",
     role: "Team Member",
-    image: "/WhatsApp Image 2025-08-30 at 12.11.21 AM.jpeg",
-    connect: "https://linkedin.com"
+    image: "/WhatsApp Image 2025-08-30 at 1.54.55 AM.jpeg",
+    connect: "https://www.linkedin.com/in/aditya-sai-sontena-a90125334/"
   },
   {
     id: "5",
-    name: "Tharak Nagaveti",
+    name: "Rishik Kalyan",
     role: "Team Member",
-    image: "/Tharakhydrilla.png",
-    connect: "https://linkedin.com"
+    image: "/WhatsApp Image 2025-08-30 at 1.26.51 AM.jpeg",
+    connect: "https://www.linkedin.com/in/rishik-kalyan-078ab631a/"
   },
   {
     id: "6",
