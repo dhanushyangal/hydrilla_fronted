@@ -73,6 +73,19 @@ export default function Hero() {
         </div>
       </div>
     </section>
+
+    {/* Mission Section */}
+    <section className="relative w-full bg-gradient-to-b from-white to-[#faf8f5] py-20 sm:py-24 md:py-32 px-4 sm:px-6 md:px-8">
+      <div className="max-w-6xl mx-auto">
+        <p 
+          className="text-center text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-black leading-tight tracking-tight"
+          style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+        >
+          Our mission is to build intelligent workflows that accelerate animation and 3D production.
+        </p>
+      </div>
+    </section>
+
     <Footer />
     </>
   );
