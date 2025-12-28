@@ -67,22 +67,9 @@ export default function GeneratePage() {
     imageUrl: string;
     prompt?: string;
     createdAt?: Date;
-  }>>([
-    // Example variations - remove these in production or load from API
-    {
-      id: "example-1",
-      imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&h=400&fit=crop",
-      prompt: "Cartoon boy with glasses and backpack",
-      createdAt: new Date(Date.now() - 86400000),
-    },
-    {
-      id: "example-2",
-      imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
-      prompt: "3D character design",
-      createdAt: new Date(Date.now() - 172800000),
-    },
-  ]);
+  }>>([]);
   const [selectedVariationId, setSelectedVariationId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   useEffect(() => {
     return () => {
@@ -539,6 +526,8 @@ export default function GeneratePage() {
       <div className="min-h-screen bg-white relative overflow-hidden">
         {/* Left Sidebar */}
         <GenerateSidebar 
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
           variations={variations}
           onSelectVariation={(id) => {
             setSelectedVariationId(id);
@@ -552,9 +541,22 @@ export default function GeneratePage() {
           }}
           selectedVariationId={selectedVariationId}
         />
+        
+        {/* Sidebar Toggle Button */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className={`fixed left-4 top-20 z-40 p-3 bg-white border border-gray-200 rounded-xl shadow-lg hover:bg-gray-50 transition-all hover:scale-105 ${
+            isSidebarOpen ? 'left-[340px]' : ''
+          }`}
+          aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+        >
+          <svg className="w-5 h-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
 
         {/* Top Left: Hydrilla Logo */}
-        <div className="absolute top-5 left-[340px] z-50">
+        <div className={`absolute top-5 z-50 transition-all duration-300 ${isSidebarOpen ? 'left-[340px]' : 'left-6'}`}>
           <a href="/" className="flex items-center">
             <span className="text-3xl font-bold text-black" style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}>
               Hydrilla
@@ -571,7 +573,7 @@ export default function GeneratePage() {
         <TopRightControls />
 
         {/* Main Content Area */}
-        <div className="flex flex-col min-h-screen ml-80">
+        <div className={`flex flex-col min-h-screen transition-all duration-300 ${isSidebarOpen ? 'ml-80' : 'ml-0'}`}>
           {/* Canvas Area - Shows when generating, preview ready, or model ready */}
           {(isPromptAtBottom || loading || currentGenerating?.glbUrl || generatingPreview || previewImageUrl || currentGenerating) && (
             <div className="flex-1 relative bg-transparent min-h-[calc(100vh-200px)] flex flex-col pb-[180px]">

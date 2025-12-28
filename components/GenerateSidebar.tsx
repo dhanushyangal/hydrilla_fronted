@@ -18,6 +18,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 interface GenerateSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
   variations?: Array<{
     id: string;
     imageUrl: string;
@@ -38,6 +40,8 @@ interface SceneElement {
 }
 
 export function GenerateSidebar({ 
+  isOpen,
+  onClose,
   variations = [], 
   onSelectVariation,
   selectedVariationId 
@@ -89,41 +93,44 @@ export function GenerateSidebar({
   );
 
   return (
-    <motion.div
-      initial={{ x: -320, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-      className="fixed left-0 top-0 h-screen w-80 bg-white/95 backdrop-blur-2xl border-r border-gray-200/50 shadow-2xl z-40 flex flex-col"
-    >
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-gray-200/50">
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
-            className="flex items-center gap-2 w-full group"
-          >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-900 to-black flex items-center justify-center flex-shrink-0">
-              <Brain size={16} className="text-white" />
-            </div>
-            <div className="flex-1 text-left min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span 
-                  className="text-sm font-semibold text-gray-900 truncate"
-                  style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ x: -320, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -320, opacity: 0 }}
+          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+          className="fixed left-0 top-0 h-screen w-80 bg-white border-r border-gray-200 z-20 flex flex-col"
+        >
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-gray-200/50 flex items-center justify-between">
+              <div className="flex-1 relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                  className="flex items-center gap-2 w-full group"
                 >
-                  3D Boy Character
-                </span>
-                <ChevronDown 
-                  size={14} 
-                  className={`text-gray-500 transition-transform duration-200 flex-shrink-0 ${
-                    isProjectDropdownOpen ? 'rotate-180' : ''
-                  }`} 
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5 truncate">3D Design Project</p>
-            </div>
-            <div className="w-6 h-4 rounded border border-gray-300/50 bg-gray-50/50 flex-shrink-0"></div>
-          </button>
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-900 to-black flex items-center justify-center flex-shrink-0">
+                    <Brain size={16} className="text-white" />
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span 
+                        className="text-sm font-semibold text-gray-900 truncate"
+                        style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                      >
+                        3D Boy Character
+                      </span>
+                      <ChevronDown 
+                        size={14} 
+                        className={`text-gray-500 transition-transform duration-200 flex-shrink-0 ${
+                          isProjectDropdownOpen ? 'rotate-180' : ''
+                        }`} 
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">3D Design Project</p>
+                  </div>
+                  <div className="w-6 h-4 rounded border border-gray-300/50 bg-gray-50/50 flex-shrink-0"></div>
+                </button>
 
           {/* Project Dropdown */}
           <AnimatePresence>
@@ -145,10 +152,17 @@ export function GenerateSidebar({
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="ml-3 p-1.5 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+                aria-label="Close sidebar"
+              >
+                <X size={18} className="text-gray-500" />
+              </button>
+            </div>
 
-      {/* Tabs */}
+            {/* Tabs */}
       <div className="flex border-b border-gray-200/50 px-5">
         <button
           onClick={() => setActiveTab("scene")}
@@ -303,7 +317,10 @@ export function GenerateSidebar({
           </div>
         </div>
       </div>
-    </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
+
 
