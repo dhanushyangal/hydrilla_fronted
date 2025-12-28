@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useAuth, SignInButton } from "@clerk/nextjs";
+import { useAuth, SignInButton, UserButton, SignedIn } from "@clerk/nextjs";
+import Link from "next/link";
 import { submitTextTo3D, submitImageTo3D, generatePreviewImage, registerJobWithPreview, fetchHistory, fetchStatus, fetchQueueInfo, BackendJob, Job, QueueInfo, getGlbUrl, updateJobName } from "../../lib/api";
 import { ThreeViewer } from "../../components/ThreeViewer";
 import { PromptBox } from "../../components/PromptBox";
@@ -139,6 +140,9 @@ export default function GeneratePage() {
   
   // Menu state
   const [showMenu, setShowMenu] = useState(false);
+  
+  // Sidebar state (for desktop)
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   
   // Search state for library
   const [searchQuery, setSearchQuery] = useState("");
@@ -978,8 +982,19 @@ export default function GeneratePage() {
   return (
     <div className="h-screen bg-neutral-50 flex overflow-hidden">
       {/* Left Panel - Library/History (Desktop Only) */}
-      <div className="hidden lg:flex lg:flex-col w-[280px] bg-white border-r border-neutral-100 flex-shrink-0">
-        <div className="p-4 border-b border-neutral-100">
+      <div className={`hidden lg:flex lg:flex-col bg-white border-r border-neutral-100 flex-shrink-0 transition-all duration-300 ease-in-out ${
+        sidebarOpen ? 'w-[280px]' : 'w-0 overflow-hidden'
+      }`}>
+        <div className={`p-4 border-b border-neutral-100 ${!sidebarOpen ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+          {/* Hydrilla Logo in Sidebar */}
+          <Link href="/" className="flex items-center mb-4">
+            <span 
+              className="text-2xl font-bold text-black tracking-tight"
+              style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+            >
+              Hydrilla
+            </span>
+          </Link>
           <h2 className="text-lg font-semibold text-black mb-3">My Generations</h2>
           {/* Search Bar */}
           <input
@@ -991,7 +1006,7 @@ export default function GeneratePage() {
                 />
               </div>
               
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className={`flex-1 overflow-y-auto p-4 space-y-2 ${!sidebarOpen ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
           {/* Current Generating */}
           {currentGenerating && currentGenerating.status === "generating" && (
             <div className="mb-4 bg-neutral-50 rounded-xl p-3 border border-neutral-200">
@@ -1132,16 +1147,102 @@ export default function GeneratePage() {
 
       {/* Chat Interface - Centered */}
       <div className="flex-1 flex flex-col min-h-0 relative">
-        {/* Mobile Menu Button */}
-        <HamburgerMenu 
-          onClick={() => setShowMenu(true)}
-          className="lg:hidden absolute top-4 left-4 z-10"
-        />
+        {/* Top Bar - Logo and Profile */}
+        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-transparent pointer-events-none">
+          {/* Left: Hydrilla Logo (shown when sidebar closed) or Toggle Button */}
+          <div className="flex items-center gap-3 pointer-events-auto">
+            {/* Sidebar Toggle Button (Desktop) */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg hover:bg-neutral-100 transition-colors"
+              aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            >
+              {sidebarOpen ? (
+                <svg 
+                  className="w-5 h-5 text-black" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor" 
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg 
+                  className="w-5 h-5 text-black" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor" 
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+            
+            {/* Hydrilla Logo (shown when sidebar closed on desktop) */}
+            {!sidebarOpen && (
+              <Link href="/" className="hidden lg:flex items-center">
+                <span 
+                  className="text-2xl font-bold text-black tracking-tight"
+                  style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                >
+                  Hydrilla
+                </span>
+              </Link>
+            )}
+            
+            {/* Mobile Menu Button */}
+            <HamburgerMenu 
+              onClick={() => setShowMenu(true)}
+              className="lg:hidden"
+            />
+          </div>
+          
+          {/* Right: Library Button and Profile Icon */}
+          <div className="pointer-events-auto flex items-center gap-3">
+            <SignedIn>
+              <Link
+                href="/library"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-100 text-black text-sm font-medium hover:bg-neutral-200 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Library
+              </Link>
+              <UserButton
+                afterSignOutUrl="/"
+                appearance={{
+                  elements: {
+                    avatarBox: "w-9 h-9 border-2 border-neutral-200",
+                  },
+                }}
+              />
+            </SignedIn>
+          </div>
+        </div>
+        
+        {/* Mobile Menu Button (old position - keeping for backward compatibility but hidden) */}
+        <div className="lg:hidden absolute top-4 left-4 z-10 opacity-0 pointer-events-none">
+          <HamburgerMenu 
+            onClick={() => setShowMenu(true)}
+          />
+        </div>
         
         {/* Mobile Menu */}
         <Menu isOpen={showMenu} onClose={() => setShowMenu(false)}>
           <div className="space-y-4">
             <div>
+              {/* Hydrilla Logo in Mobile Menu */}
+              <Link href="/" className="flex items-center mb-4" onClick={() => setShowMenu(false)}>
+                <span 
+                  className="text-2xl font-bold text-black tracking-tight"
+                  style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                >
+                  Hydrilla
+                </span>
+              </Link>
               <h3 className="text-sm font-semibold text-black mb-3">My Generations</h3>
               {/* Search Bar */}
               <input
@@ -1297,7 +1398,7 @@ export default function GeneratePage() {
           </div>
         </Menu>
         
-         <div className="flex-1 flex flex-col min-h-0 max-w-4xl mx-auto w-full">
+         <div className="flex-1 flex flex-col min-h-0 max-w-4xl mx-auto w-full pt-16">
            {chatMessages.length === 0 ? (
              /* Empty State - Centered Prompt Box */
              <div className="flex-1 flex items-center justify-center px-4 py-8">
@@ -1328,8 +1429,8 @@ export default function GeneratePage() {
                  </div>
                </div>
 
-               {/* Prompt Box - Fixed at bottom */}
-               <div className="w-full bg-white border-t border-neutral-100 p-4 sm:p-6 flex-shrink-0">
+               {/* Prompt Box */}
+               <div className="pb-6 px-4">
                  <PromptBox
                    value={mode === "text" ? prompt : ""}
                    onChange={(value) => {

@@ -4,7 +4,15 @@ import {
   ClerkProvider,
 } from "@clerk/nextjs";
 import { ClientProviders } from "../components/ClientProviders";
-import { Navigation } from "../components/Navigation";
+import { ConditionalNavbar } from "../components/layout/ConditionalNavbar";
+import { DM_Sans } from "next/font/google";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
 
 export const metadata = {
   title: "Hydrilla 3D Generator",
@@ -21,10 +29,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         },
       }}
     >
-    <html lang="en">
+    <html lang="en" className={dmSans.variable}>
         <body className="min-h-screen bg-white">
           <ClientProviders>
-            <Navigation />
+            <ConditionalNavbar />
             <main>{children}</main>
           </ClientProviders>
       </body>

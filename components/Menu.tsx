@@ -34,7 +34,12 @@ export function Menu({ isOpen, onClose, children }: MenuProps) {
           >
             {/* Header */}
             <div className="p-4 border-b border-neutral-100 flex items-center justify-between sticky top-0 bg-white z-10">
-              <h2 className="text-lg font-semibold text-black">Menu</h2>
+              <span 
+                className="text-xl font-bold text-black tracking-tight"
+                style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+              >
+                Hydrilla
+              </span>
               <button
                 onClick={onClose}
                 aria-label="Close menu"
