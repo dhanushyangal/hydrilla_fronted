@@ -280,8 +280,7 @@ export async function uploadImage(file: File, getToken?: () => Promise<string | 
 export async function submitImageTo3D(
   imageUrl: string | null,
   imageFile: File | null = null,
-  getToken?: () => Promise<string | null>,
-  existingJobId?: string | null
+  getToken?: () => Promise<string | null>
 ): Promise<{ job_id: string }> {
   const formData = new FormData();
 
@@ -291,11 +290,6 @@ export async function submitImageTo3D(
     formData.append("image_url", imageUrl);
   } else {
     throw new Error("Either imageUrl or imageFile must be provided");
-  }
-
-  // Add existing job ID if provided (for generating 3D from preview)
-  if (existingJobId) {
-    formData.append("existing_job_id", existingJobId);
   }
 
   const res = await fetch(`${apiBase}/image-to-3d`, {

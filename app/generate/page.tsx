@@ -214,40 +214,26 @@ export default function GeneratePage() {
             } : null);
           
           // Remove status message and add 3D model message to chat
-          // Keep the preview image message if it exists for the same job
           setChatMessages((prev) => {
             // Remove any status messages for this job
             const filtered = prev.filter((msg) => 
-              !(msg.type === "status" && msg.status === "generating" && msg.jobId === currentGenerating.jobId)
+              !(msg.type === "status" && msg.status === "generating")
             );
-            // Add 3D model message (preview should already be in chat)
+            // Add 3D model message
             if (glbUrl) {
-              // Check if 3D model message already exists for this job
-              const existing3D = filtered.find(msg => msg.type === "3d" && msg.jobId === currentGenerating.jobId);
-              if (!existing3D) {
-                filtered.push({
-                  id: `3d-${currentGenerating.jobId}-${Date.now()}`,
-                  type: "3d",
-                  glbUrl: glbUrl,
-                  status: "completed",
-                  jobId: currentGenerating.jobId,
-                  timestamp: Date.now(),
-                });
-              }
+              filtered.push({
+                id: `3d-${currentGenerating.jobId}-${Date.now()}`,
+                type: "3d",
+                glbUrl: glbUrl,
+              status: "completed",
+                jobId: currentGenerating.jobId,
+                timestamp: Date.now(),
+              });
             }
             return filtered;
           });
           
-          // Refresh history to show updated job with 3D result
-          try {
-            const tokenGetter = async () => await getToken();
-            const jobs = await fetchHistory(tokenGetter);
-            setHistory(jobs);
-          } catch (err) {
-            console.error("Failed to refresh history:", err);
-          }
-          
-          setLoading(false);
+            setLoading(false);
           setUploading(false);
           
           // Clear progress interval
@@ -654,14 +640,10 @@ export default function GeneratePage() {
 
     try {
       const tokenGetter = async () => await getToken();
-      // Use the preview job ID if available, so 3D generation updates the same job
-      const result = await submitImageTo3D(previewImageUrl, null, tokenGetter, previewId || null);
-      
-      // Use the existing preview job ID if we passed it, otherwise use the new job ID
-      const finalJobId = previewId || result.job_id;
+      const result = await submitImageTo3D(previewImageUrl, null, tokenGetter);
       
       setCurrentGenerating({
-        jobId: finalJobId,
+        jobId: result.job_id,
         prompt: prompt,
         status: "generating",
         progress: 0,
@@ -733,6 +715,26 @@ export default function GeneratePage() {
       case "RUN": case "WAIT": return "bg-neutral-400";
       case "FAIL": return "bg-neutral-300";
       default: return "bg-neutral-300";
+    }
+  };
+  
+  // Get status text for history items
+  const getStatusText = (job: BackendJob) => {
+    // If job has preview but no 3D result and status is DONE, it's a completed preview
+    if (job.previewImageUrl && !job.resultGlbUrl && job.status === "DONE") {
+      return "Done";
+    }
+    // If job is generating 3D (has preview and status is WAIT/RUN), show pending
+    if (job.previewImageUrl && (job.status === "WAIT" || job.status === "RUN")) {
+      return "Pending";
+    }
+    // Otherwise use standard status mapping
+    switch (job.status) {
+      case "DONE": return "Done";
+      case "WAIT": return "Pending";
+      case "RUN": return "Processing";
+      case "FAIL": return "Failed";
+      default: return job.status;
     }
   };
 
@@ -860,20 +862,14 @@ export default function GeneratePage() {
                 )}
                 {message.canGenerate3D && (
                   <button
-                    onClick={async () => {
-                      if (message.imageUrl && message.jobId) {
-                        // Use the image and job ID from the chat message
-                        // This ensures we update the existing preview job with 3D result
-                        setPreviewImageUrl(message.imageUrl);
-                        setPreviewId(message.jobId);
-                        await handleGenerate3D();
-                      } else if (message.imageUrl) {
+                    onClick={() => {
+                      if (message.imageUrl) {
                         // Use the image from the chat message
                         setPreviewImageUrl(message.imageUrl);
                         setPreviewId(message.jobId || null);
-                        await handleGenerate3D();
+                        handleGenerate3D();
                       } else {
-                        await handleImageTo3D();
+                        handleImageTo3D();
                       }
                     }}
                     disabled={loading || generatingPreview}
@@ -1119,7 +1115,7 @@ export default function GeneratePage() {
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`w-1.5 h-1.5 rounded-full ${getStatusColor(job.status)}`}></span>
                           <span className="text-xs text-neutral-400">
-                            {job.status === "DONE" ? "Done" : job.status}
+                            {getStatusText(job)}
                           </span>
                         </div>
                       </>
@@ -1242,7 +1238,13 @@ export default function GeneratePage() {
                             </div>
                             <div className="flex items-center gap-2 mt-1">
                               <span className={`w-2 h-2 rounded-full ${getStatusColor(job.status)}`}></span>
-                              <span className="text-xs text-neutral-500">{job.status === "DONE" ? "Completed" : job.status}</span>
+                              <span className="text-xs text-neutral-500">
+                                {job.previewImageUrl && !job.resultGlbUrl && job.status === "DONE" 
+                                  ? "Done" 
+                                  : job.status === "DONE" 
+                                    ? "Completed" 
+                                    : getStatusText(job)}
+                              </span>
                             </div>
                           </>
                         )}
