@@ -63,6 +63,7 @@ export interface BackendJob {
   previewImageUrl: string | null;
   errorCode: string | null;
   errorMessage: string | null;
+  name?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -117,6 +118,36 @@ function transformBackendJobToJob(backendJob: BackendJob | any): Job {
     } : undefined,
     error: backendJob.errorMessage || undefined
   };
+}
+
+/**
+ * Register a job with preview image
+ */
+export async function registerJobWithPreview(
+  previewId: string,
+  previewImageUrl: string,
+  prompt: string,
+  getToken?: () => Promise<string | null>
+): Promise<void> {
+  try {
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (getToken) {
+      const token = await getToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    }
+
+    await fetch(`${backendBase}/api/3d/register-job`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ 
+        job_id: previewId, 
+        prompt,
+        previewImageUrl 
+      }),
+    }).catch(() => {});
+  } catch {}
 }
 
 /**
@@ -249,7 +280,8 @@ export async function uploadImage(file: File, getToken?: () => Promise<string | 
 export async function submitImageTo3D(
   imageUrl: string | null,
   imageFile: File | null = null,
-  getToken?: () => Promise<string | null>
+  getToken?: () => Promise<string | null>,
+  existingJobId?: string | null
 ): Promise<{ job_id: string }> {
   const formData = new FormData();
 
@@ -259,6 +291,11 @@ export async function submitImageTo3D(
     formData.append("image_url", imageUrl);
   } else {
     throw new Error("Either imageUrl or imageFile must be provided");
+  }
+
+  // Add existing job ID if provided (for generating 3D from preview)
+  if (existingJobId) {
+    formData.append("existing_job_id", existingJobId);
   }
 
   const res = await fetch(`${apiBase}/image-to-3d`, {
@@ -475,6 +512,30 @@ export async function fetchHistory(getToken?: () => Promise<string | null>): Pro
     
     // Re-throw other errors (API errors, parsing errors, etc.)
     throw err;
+  }
+}
+
+/**
+ * Update job name (requires auth)
+ */
+export async function updateJobName(jobId: string, name: string, getToken: () => Promise<string | null>): Promise<void> {
+  const token = await getToken();
+  if (!token) {
+    throw new Error("Authentication required");
+  }
+
+  const res = await fetch(`${backendBase}/api/3d/jobs/${jobId}/name`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ name }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Failed to update job name");
   }
 }
 
