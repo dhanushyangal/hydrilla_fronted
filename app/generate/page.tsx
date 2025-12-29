@@ -95,6 +95,8 @@ export default function GeneratePage() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [gpuAvailable, setGpuAvailable] = useState<boolean | null>(null); // null = checking, true = available, false = unavailable
+  const [showGpuUnavailableModal, setShowGpuUnavailableModal] = useState(false);
   const [modelGenerationProgress, setModelGenerationProgress] = useState(0);
   
   // Scroll to bottom when new messages arrive or progress updates
@@ -159,6 +161,41 @@ export default function GeneratePage() {
   }, [isLoaded, isSignedIn]);
 
   const userIsSignedIn = isLoaded ? isSignedIn : (isMounted ? cachedAuthState : null);
+
+  // Check GPU availability on mount and periodically
+  useEffect(() => {
+    const checkGpuAvailability = async () => {
+      try {
+        const queueInfo = await fetchQueueInfo();
+        if (queueInfo) {
+          const isAvailable = queueInfo.gpu_available !== false;
+          setGpuAvailable(isAvailable);
+          // Show modal on page load if GPU is unavailable
+          if (!isAvailable && gpuAvailable === null) {
+            setShowGpuUnavailableModal(true);
+          }
+        } else {
+          setGpuAvailable(false);
+          if (gpuAvailable === null) {
+            setShowGpuUnavailableModal(true);
+          }
+        }
+      } catch {
+        setGpuAvailable(false);
+        if (gpuAvailable === null) {
+          setShowGpuUnavailableModal(true);
+        }
+      }
+    };
+    
+    // Check immediately
+    checkGpuAvailability();
+    
+    // Check every 30 seconds
+    const interval = setInterval(checkGpuAvailability, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch history on mount and restore generating jobs
   useEffect(() => {
@@ -398,6 +435,30 @@ export default function GeneratePage() {
       return;
     }
 
+    // Check GPU availability before proceeding
+    if (gpuAvailable === false) {
+      setShowGpuUnavailableModal(true);
+      return;
+    }
+
+    // If GPU status is unknown, check it now
+    if (gpuAvailable === null) {
+      try {
+        const queueInfo = await fetchQueueInfo();
+        if (queueInfo && queueInfo.gpu_available === false) {
+          setGpuAvailable(false);
+          setShowGpuUnavailableModal(true);
+          return;
+        } else {
+          setGpuAvailable(true);
+        }
+      } catch {
+        setGpuAvailable(false);
+        setShowGpuUnavailableModal(true);
+        return;
+      }
+    }
+
     if (mode === "text" && prompt.trim()) {
       // Add user message to chat
       addChatMessage({
@@ -567,14 +628,26 @@ export default function GeneratePage() {
     try {
       queueInfo = await fetchQueueInfo();
       if (queueInfo) {
+        // Check GPU availability
+        if (queueInfo.gpu_available === false) {
+          setGpuAvailable(false);
+          setShowGpuUnavailableModal(true);
+          setGeneratingPreview(false);
+          return;
+        } else {
+          setGpuAvailable(true);
+        }
         // For preview, estimate: wait time + ~20s for generation
         const waitTime = queueInfo.estimated_wait_seconds ?? 0;
         const baseTime = 20; // Base preview generation time
         estimatedPreviewTime = waitTime + baseTime;
       }
     } catch {
-      const hasQueue = history.some(job => job.status === "WAIT" || job.status === "RUN");
-      estimatedPreviewTime = hasQueue ? 40 : 20;
+      // If fetch fails, assume GPU is unavailable
+      setGpuAvailable(false);
+      setShowGpuUnavailableModal(true);
+      setGeneratingPreview(false);
+      return;
     }
     
     setEstimatedPreviewSeconds(estimatedPreviewTime);
@@ -1072,6 +1145,34 @@ export default function GeneratePage() {
 
   return (
     <div className="h-screen bg-neutral-50 flex overflow-hidden">
+      {/* GPU Unavailable Modal */}
+      {showGpuUnavailableModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-black mb-2">GPU Not Available</h3>
+                <p className="text-sm text-neutral-600 mb-4">
+                  The GPU service is currently offline. Please try again later.
+                </p>
+                <button
+                  onClick={() => setShowGpuUnavailableModal(false)}
+                  className="w-full px-4 py-2 bg-black text-white rounded-lg hover:bg-neutral-800 transition-colors font-medium"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Left Panel - Library/History (Desktop Only) */}
       <div className={`hidden lg:flex lg:flex-col bg-white border-r border-neutral-100 flex-shrink-0 transition-all duration-300 ease-in-out ${
         sidebarOpen ? 'w-[280px]' : 'w-0 overflow-hidden'
