@@ -21,7 +21,6 @@ export interface QueueInfo {
   estimated_total_seconds: number;
   queue_length: number;
   currently_processing: boolean;
-  gpu_available?: boolean;  // Whether GPU/API is available
 }
 
 export interface Job {
@@ -368,15 +367,7 @@ export async function fetchQueueInfo(): Promise<QueueInfo & {
   try {
     const res = await fetch(`${backendBase}/api/3d/queue/info`);
     if (!res.ok) {
-      return {
-        position: 0,
-        jobs_ahead: 0,
-        estimated_wait_seconds: 0,
-        estimated_total_seconds: 130,
-        queue_length: 0,
-        currently_processing: false,
-        gpu_available: false
-      };
+      return null;
     }
     const data = await res.json();
     return {
@@ -386,22 +377,12 @@ export async function fetchQueueInfo(): Promise<QueueInfo & {
       estimated_total_seconds: (data.estimated_wait_for_new_job_seconds || 0) + (data.estimated_time_per_job_seconds || 130),
       queue_length: data.queue_length || 0,
       currently_processing: data.currently_processing || false,
-      gpu_available: data.gpu_available !== false, // Default to true if not specified
       // Preview queue info
       estimated_wait_for_preview_seconds: data.estimated_wait_for_preview_seconds || 0,
       estimated_preview_time_seconds: data.estimated_preview_time_seconds || 20
     };
   } catch {
-    // Return GPU unavailable status on fetch error
-    return {
-      position: 0,
-      jobs_ahead: 0,
-      estimated_wait_seconds: 0,
-      estimated_total_seconds: 130,
-      queue_length: 0,
-      currently_processing: false,
-      gpu_available: false
-    };
+    return null;
   }
 }
 
