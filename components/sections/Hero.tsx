@@ -2,7 +2,6 @@
 
 import React from "react";
 import Link from "next/link";
-import Footer from "../layout/Footer";
 import VideoBackground from "./VideoBackground";
 
 /**
@@ -85,8 +84,6 @@ export default function Hero() {
         </p>
       </div>
     </section>
-
-    <Footer />
     </>
   );
 }

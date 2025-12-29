@@ -19,7 +19,7 @@ export default async function Home() {
     <>
       <SignedIn>
         {/* Optimized Video Background - same as Hero section */}
-        <div className="relative min-h-screen w-full overflow-hidden">
+        <section className="relative min-h-screen w-full overflow-hidden">
           <VideoBackground 
             videoSrc="/herohydrilla.mp4"
             posterSrc="/herohydrillasrc.jpg"
@@ -58,7 +58,7 @@ export default async function Home() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </SignedIn>
 
       <SignedOut>
