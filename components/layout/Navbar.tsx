@@ -24,17 +24,19 @@ export default function Navbar({ variant = "hero", pathname = "/" }: NavbarProps
 
   const isHero = variant === "hero";
 
-  // Check if team page, FAQ page, case study, or 3D & AI page (should use hero styling, same as team page)
+  // Check if team page, FAQ page, case study, 3D & AI page, or home page (should use hero styling, same as team page)
   const isTeamPage = pathname === "/team";
   const isFAQPage = pathname === "/faq";
   const isCaseStudyPage = pathname === "/case-study";
   const isThreeDAIPage = pathname === "/3d-ai";
-  const useHeroStyling = isHero || isTeamPage || isFAQPage || isCaseStudyPage || isThreeDAIPage;
+  const isHomePage = pathname === "/";
+  const useHeroStyling = isHero || isTeamPage || isFAQPage || isCaseStudyPage || isThreeDAIPage || isHomePage;
   
-  // For FAQ, case study, and 3D & AI pages, treat them the same as team page
+  // For FAQ, case study, 3D & AI, and home pages, treat them the same as team page
   const isFAQPageInSecondSection = isFAQPage && isInSecondSection;
   const isCaseStudyPageInSecondSection = isCaseStudyPage && isInSecondSection;
   const isThreeDAIPageInSecondSection = isThreeDAIPage && isInSecondSection;
+  const isHomePageInSecondSection = isHomePage && isInSecondSection;
 
   // Scroll detection for hero variant and team page
   useEffect(() => {
@@ -44,8 +46,8 @@ export default function Navbar({ variant = "hero", pathname = "/" }: NavbarProps
       const scrollY = window.scrollY;
       setIsScrolled(scrollY > 50);
       
-      // For team page, FAQ, case study, and 3D & AI pages, detect if we're in the second section
-      if (isTeamPage || isFAQPage || isCaseStudyPage || isThreeDAIPage) {
+      // For team page, FAQ, case study, 3D & AI, and home pages, detect if we're in the second section
+      if (isTeamPage || isFAQPage || isCaseStudyPage || isThreeDAIPage || isHomePage) {
         const heroSection = document.querySelector('section[class*="min-h-screen"]');
         if (heroSection) {
           const heroBottom = heroSection.getBoundingClientRect().bottom;
@@ -58,7 +60,7 @@ export default function Navbar({ variant = "hero", pathname = "/" }: NavbarProps
     window.addEventListener("scroll", handleScroll);
     handleScroll(); // Initial check
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [useHeroStyling, isTeamPage, isFAQPage, isCaseStudyPage, isThreeDAIPage]);
+  }, [useHeroStyling, isTeamPage, isFAQPage, isCaseStudyPage, isThreeDAIPage, isHomePage]);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -87,13 +89,13 @@ export default function Navbar({ variant = "hero", pathname = "/" }: NavbarProps
     ? "bg-white/2 backdrop-blur-[80px] border border-gray-200/20 shadow-2xl"
     : "bg-white/60 backdrop-blur-xl border border-gray-200/50 shadow-lg";
   
-  // For team page, FAQ, case study, and 3D & AI pages, change text color to black when in second section
-  const textColor = (useHeroStyling && !(isTeamPage && isInSecondSection) && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection) ? "text-white" : "text-black";
+  // For team page, FAQ, case study, 3D & AI, and home pages, change text color to black when in second section
+  const textColor = (useHeroStyling && !(isTeamPage && isInSecondSection) && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection && !isHomePageInSecondSection) ? "text-white" : "text-black";
   const logoClasses = `text-2xl font-bold ${textColor} tracking-tight transition-colors duration-500`;
   
-  // Adjust button classes based on section for team page, FAQ, case study, and 3D & AI pages
+  // Adjust button classes based on section for team page, FAQ, case study, 3D & AI, and home pages
   const isTeamPageInSecondSection = isTeamPage && isInSecondSection;
-  const shouldUseWhiteButtons = (useHeroStyling && !isTeamPageInSecondSection && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection);
+  const shouldUseWhiteButtons = (useHeroStyling && !isTeamPageInSecondSection && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection && !isHomePageInSecondSection);
   const generateButtonClasses = shouldUseWhiteButtons
     ? "px-4 py-2 rounded-lg bg-white/20 backdrop-blur-md border border-white/30 text-xs font-semibold text-white uppercase tracking-wider hover:bg-white/30 transition-all duration-500 ease-out shadow-sm"
     : "px-4 py-2 rounded-lg bg-gray-100 text-xs font-semibold text-black uppercase tracking-wider hover:bg-gray-200 transition-all duration-500 ease-out";
@@ -109,23 +111,23 @@ export default function Navbar({ variant = "hero", pathname = "/" }: NavbarProps
   const userButtonBorder = shouldUseWhiteButtons ? "border-white/40" : "border-gray-300";
   
   // Mobile menu classes - same as team page (white background when in second section, glass when in hero)
-  const mobileMenuClasses = (useHeroStyling && !isTeamPageInSecondSection && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection)
+  const mobileMenuClasses = (useHeroStyling && !isTeamPageInSecondSection && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection && !isHomePageInSecondSection)
     ? "md:hidden border-t border-white/20 bg-white/10 backdrop-blur-xl"
     : "md:hidden border-t border-gray-200 bg-white shadow-lg";
   
-  const mobileMenuItemClasses = (useHeroStyling && !isTeamPageInSecondSection && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection)
+  const mobileMenuItemClasses = (useHeroStyling && !isTeamPageInSecondSection && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection && !isHomePageInSecondSection)
     ? "block px-4 py-2 rounded-lg bg-white/20 backdrop-blur-md border border-white/30 text-xs font-semibold text-white uppercase tracking-wider hover:bg-white/30 transition-all"
     : "block px-4 py-3 rounded-lg bg-gray-50/80 text-sm font-medium text-black uppercase tracking-wider hover:bg-gray-100 transition-all";
   
-  const mobileSignInClasses = (useHeroStyling && !isTeamPageInSecondSection && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection)
+  const mobileSignInClasses = (useHeroStyling && !isTeamPageInSecondSection && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection && !isHomePageInSecondSection)
     ? "w-full text-left text-xs font-semibold text-white uppercase tracking-wider hover:text-white/80 transition-colors"
     : "w-full text-left text-xs font-semibold text-black uppercase tracking-wider hover:text-black/70 transition-colors";
   
-  const mobileSignUpClasses = (useHeroStyling && !isTeamPageInSecondSection && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection)
+  const mobileSignUpClasses = (useHeroStyling && !isTeamPageInSecondSection && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection && !isHomePageInSecondSection)
     ? "w-full px-4 py-2 text-xs font-semibold text-black uppercase tracking-wider bg-white/90 backdrop-blur-md border border-white/40 rounded-lg hover:bg-white transition-all"
     : "w-full px-4 py-2 text-xs font-semibold text-white uppercase tracking-wider bg-black backdrop-blur-md border border-black rounded-lg hover:bg-gray-900 transition-all";
   
-  const mobileMenuDivider = (useHeroStyling && !isTeamPageInSecondSection && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection) ? "border-white/20" : "border-gray-200";
+  const mobileMenuDivider = (useHeroStyling && !isTeamPageInSecondSection && !isFAQPageInSecondSection && !isCaseStudyPageInSecondSection && !isThreeDAIPageInSecondSection && !isHomePageInSecondSection) ? "border-white/20" : "border-gray-200";
   
   const hamburgerClasses = isHero
     ? "md:hidden p-1.5 hover:bg-white/20 rounded-lg transition-colors"
@@ -133,8 +135,8 @@ export default function Navbar({ variant = "hero", pathname = "/" }: NavbarProps
   
   const hamburgerIconClasses = shouldUseWhiteButtons ? "w-5 h-5 text-white" : "w-5 h-5 text-black";
 
-  // Dynamic classes based on scroll state for hero variant, team page, FAQ, case study, and 3D & AI pages
-  const shouldShrink = (isHero || pathname === "/team" || pathname === "/faq" || pathname === "/case-study" || pathname === "/3d-ai") && isScrolled;
+  // Dynamic classes based on scroll state for hero variant, team page, FAQ, case study, 3D & AI, and home pages
+  const shouldShrink = (isHero || pathname === "/team" || pathname === "/faq" || pathname === "/case-study" || pathname === "/3d-ai" || pathname === "/") && isScrolled;
   const dynamicContainerClasses = shouldShrink
     ? "bg-white/5 backdrop-blur-[60px] border border-gray-200/15 shadow-xl max-w-2xl transition-all duration-500 ease-out"
     : containerClasses;

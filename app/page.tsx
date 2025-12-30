@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Hero from "../components/sections/Hero";
 import VideoBackground from "../components/sections/VideoBackground";
+import Footer from "../components/layout/Footer";
 
 export default async function Home() {
   const { userId } = await auth();
@@ -18,7 +19,7 @@ export default async function Home() {
     <>
       <SignedIn>
         {/* Optimized Video Background - same as Hero section */}
-        <div className="relative min-h-screen w-full overflow-hidden">
+        <section className="relative min-h-screen w-full overflow-hidden">
           <VideoBackground 
             videoSrc="/herohydrilla.mp4"
             posterSrc="/herohydrillasrc.jpg"
@@ -57,13 +58,16 @@ export default async function Home() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </SignedIn>
 
       <SignedOut>
         {/* Landing page for non-authenticated users - Hero Section */}
         <Hero />
       </SignedOut>
+      
+      {/* Footer */}
+      <Footer />
     </>
   );
 }
