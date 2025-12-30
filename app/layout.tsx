@@ -6,6 +6,7 @@ import {
 import { ClientProviders } from "../components/ClientProviders";
 import { ConditionalNavbar } from "../components/layout/ConditionalNavbar";
 import { DM_Sans, Space_Grotesk } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <ConditionalNavbar />
             <main>{children}</main>
           </ClientProviders>
+          <Analytics />
       </body>
     </html>
     </ClerkProvider>
