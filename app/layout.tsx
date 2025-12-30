@@ -1,6 +1,5 @@
 import "./globals.css";
 import type { ReactNode } from "react";
-import Script from "next/script";
 import {
   ClerkProvider,
 } from "@clerk/nextjs";
@@ -44,15 +43,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       }}
     >
     <html lang="en" className={`${dmSans.variable} ${spaceGrotesk.variable}`}>
-        <body className="min-h-screen bg-white">
+        <head>
           {/* Google tag (gtag.js) */}
-          <Script
+          <script
+            async
             src="https://www.googletagmanager.com/gtag/js?id=G-5DMYT9CZ0S"
-            strategy="afterInteractive"
           />
-          <Script
-            id="google-analytics"
-            strategy="afterInteractive"
+          <script
             dangerouslySetInnerHTML={{
               __html: `
                 window.dataLayer = window.dataLayer || [];
@@ -62,6 +59,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               `,
             }}
           />
+        </head>
+        <body className="min-h-screen bg-white">
           <ClientProviders>
             <ConditionalNavbar />
             <main>{children}</main>
