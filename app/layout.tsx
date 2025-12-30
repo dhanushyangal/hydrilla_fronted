@@ -47,18 +47,21 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <body className="min-h-screen bg-white">
           {/* Google tag (gtag.js) */}
           <Script
-            async
             src="https://www.googletagmanager.com/gtag/js?id=G-5DMYT9CZ0S"
             strategy="afterInteractive"
           />
-          <Script id="google-analytics" strategy="afterInteractive">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-5DMYT9CZ0S');
-            `}
-          </Script>
+          <Script
+            id="google-analytics"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', 'G-5DMYT9CZ0S');
+              `,
+            }}
+          />
           <ClientProviders>
             <ConditionalNavbar />
             <main>{children}</main>
