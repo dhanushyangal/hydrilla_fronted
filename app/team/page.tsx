@@ -28,7 +28,7 @@ const teamMembers: TeamMember[] = [
     id: "2",
     name: "Dharani Kumar",
     role: "Co-Founder & CTO",
-    image: "/WhatsApp Image 2025-08-30 at 1.22.42 AM.jpeg",
+    image: "/ddhydrilla.jpeg",
     connect: "https://www.linkedin.com/in/yengala-dharani-kumar-4b7948221/"
     
   },
@@ -36,21 +36,21 @@ const teamMembers: TeamMember[] = [
     id: "3",
     name: "Tejesh Varma",
     role: "Co-Founder & CGO",
-    image: "/WhatsApp Image 2025-08-30 at 12.11.21 AM.jpeg",
+    image: "/tejahydrilla.jpeg",
     connect: "https://www.linkedin.com/in/yenugudhati-tejesh-varma-478b51343/"
     
   },
   {
     id: "4",
     name: "Aditya Sontena",
-    role: "Team Member",
-    image: "/WhatsApp Image 2025-08-30 at 1.54.55 AM.jpeg",
+    role: "Lead Developer",
+    image: "/adihydrilla.jpeg",
     connect: "https://www.linkedin.com/in/aditya-sai-sontena-a90125334/"
   },
   {
     id: "5",
     name: "Rishik Kalyan",
-    role: "Team Member",
+    role: "Assistant Lead Developer",
     image: "/WhatsApp Image 2025-08-30 at 1.26.51 AM.jpeg",
     connect: "https://www.linkedin.com/in/rishik-kalyan-078ab631a/"
   },
@@ -58,14 +58,14 @@ const teamMembers: TeamMember[] = [
     id: "6",
     name: "Hem Charan",
     role: "Software Engineer",
-    image: "/hemuhydrilla.png",
+    image: "/hemuhydrilla.jpg",
     connect: "https://www.linkedin.com/in/mundlapati-hemcharan-58a506333/"
   },
   {
     id: "7",
     name: "Krishna Manohar",
     role: "Data Scientist",
-    image: "/manhydrilla.jpg",
+    image: "/manhydrilla.png",
     connect: "https://www.linkedin.com/in/varada-krishna-manohar-9a36a5369/"
   },
   {
@@ -73,7 +73,7 @@ const teamMembers: TeamMember[] = [
     name: "Kishan Kumar",
     role: "Marketing Head",
     image: "/kittuhydrilla.jpg",
-    connect: "https://www.linkedin.com/in/kishan-kumar-t-321149319/"
+    connect: "https://www.linkedin.com/in/kishan-kumar-thathekalva-321149319/"
   },
 ];
 
