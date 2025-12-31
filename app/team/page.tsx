@@ -58,21 +58,21 @@ const teamMembers: TeamMember[] = [
     id: "6",
     name: "Hem Charan",
     role: "Software Engineer",
-    image: "/hemhydrilla.png",
+    image: "/hemuhydrilla.png",
     connect: "https://www.linkedin.com/in/mundlapati-hemcharan-58a506333/"
   },
   {
     id: "7",
     name: "Krishna Manohar",
-    role: "Software Engineer",
-    image: "/manhydrilla.png",
+    role: "Data Scientist",
+    image: "/manhydrilla.jpg",
     connect: "https://www.linkedin.com/in/varada-krishna-manohar-9a36a5369/"
   },
   {
     id: "8",
     name: "Kishan Kumar",
     role: "Marketing Head",
-    image: "/kishanhydrilla.png",
+    image: "/kittuhydrilla.jpg",
     connect: "https://www.linkedin.com/in/kishan-kumar-t-321149319/"
   },
 ];
