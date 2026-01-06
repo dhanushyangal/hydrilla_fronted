@@ -148,7 +148,7 @@ export default function Footer() {
               className="text-sm sm:text-base text-black text-center sm:text-left order-2 sm:order-1"
               style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
             >
-              2025 Hydrilla AI - All Rights Reserved
+              2026 Hydrilla AI - All Rights Reserved
             </p>
             <div className="flex items-center gap-5 sm:gap-6 order-1 sm:order-2">
               {/* LinkedIn */}

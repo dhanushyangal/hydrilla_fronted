@@ -30,16 +30,16 @@ export default function ThreeDAIPage() {
         <div className="relative z-10 container mx-auto px-4 sm:px-6 md:px-8 pt-32 sm:pt-40 md:pt-48 pb-12 sm:pb-16 md:pb-20 flex flex-col items-center justify-center min-h-screen">
           {/* Subtitle */}
           <p 
-            className="text-sm sm:text-base md:text-lg text-black/70 mb-4 sm:mb-6 tracking-wide"
-            style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+            className="text-xs sm:text-sm md:text-base text-black/70 mb-6 sm:mb-8 tracking-[0.15em] uppercase font-medium animate-fade-in"
+            style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
           >
             ( Building 3D & Ai )
           </p>
           
           {/* Main Heading */}
-          <h1 className="text-center">
+          <h1 className="text-center animate-fade-in-up">
             <span 
-              className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-black leading-tight tracking-tight font-bold"
+              className="block text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl text-black leading-[1.05] tracking-[-0.02em] font-bold"
               style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
             >
               3D & AI
@@ -51,13 +51,13 @@ export default function ThreeDAIPage() {
       {/* Content Section */}
       <section 
         ref={contentSectionRef}
-        className="relative py-16 sm:py-20 md:py-24 px-4 sm:px-6 md:px-8 bg-neutral-50"
+        className="relative py-20 sm:py-24 md:py-32 px-4 sm:px-6 md:px-8 bg-gradient-to-b from-neutral-50 to-white"
       >
         <div className="max-w-4xl mx-auto">
-          <div className="text-center">
+          <div className="text-center animate-fade-in-up animate-delay-200">
             <p 
-              className="text-lg sm:text-xl text-gray-600 leading-relaxed"
-              style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+              className="text-xl sm:text-2xl md:text-3xl text-gray-600 leading-relaxed font-medium tracking-tight"
+              style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
             >
               Content coming soon...
             </p>
