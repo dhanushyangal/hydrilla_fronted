@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import VideoBackground from "./VideoBackground";
+import Showcase from "./Showcase";
 
 /**
  * Hero Section Component
@@ -72,6 +73,9 @@ export default function Hero() {
         </div>
       </div>
     </section>
+
+    {/* Showcase Section */}
+    <Showcase />
 
     {/* Mission Section */}
     <section className="relative w-full bg-gradient-to-b from-white to-[#faf8f5] py-20 sm:py-24 md:py-32 px-4 sm:px-6 md:px-8">
