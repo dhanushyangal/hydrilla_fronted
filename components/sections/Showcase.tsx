@@ -100,7 +100,8 @@ export default function Showcase() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const maxIndex = Math.max(0, showcaseItems.length - cardsPerView);
+  // Calculate max index - allow scrolling to the last card
+  const maxIndex = Math.max(0, showcaseItems.length - 1);
 
   const scrollToIndex = (index: number) => {
     const clampedIndex = Math.max(0, Math.min(index, maxIndex));
@@ -110,13 +111,30 @@ export default function Showcase() {
       const card = cardRefs.current[clampedIndex];
       const container = scrollContainerRef.current;
       const cardLeft = card.offsetLeft;
+      const containerRect = container.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
       const containerPadding = parseInt(getComputedStyle(container).paddingLeft || '0');
+      const maxScroll = container.scrollWidth - container.clientWidth;
       
-      // Scroll to align card with snap point
-      const scrollLeft = cardLeft - containerPadding;
+      // Calculate scroll position to center the card (or align to start for first card)
+      let scrollLeft: number;
+      if (clampedIndex === 0) {
+        // First card aligns to start
+        scrollLeft = cardLeft - containerPadding;
+      } else if (clampedIndex === showcaseItems.length - 1) {
+        // Last card - scroll to show it fully, accounting for right padding
+        const cardRight = cardLeft + cardRect.width;
+        const containerPaddingRight = parseInt(getComputedStyle(container).paddingRight || '0');
+        scrollLeft = cardRight - container.clientWidth + containerPaddingRight;
+      } else {
+        // Other cards center in viewport
+        const cardCenter = cardLeft + cardRect.width / 2;
+        const containerCenter = containerPadding + containerRect.width / 2;
+        scrollLeft = cardCenter - containerCenter;
+      }
       
       container.scrollTo({
-        left: Math.max(0, scrollLeft),
+        left: Math.max(0, Math.min(scrollLeft, maxScroll)),
         behavior: 'smooth',
       });
     }
@@ -141,10 +159,26 @@ export default function Showcase() {
 
     const handleScroll = () => {
       const scrollLeft = container.scrollLeft;
-      const cardWidth = 380;
-      const gap = 24; // gap-6
-      const cardWithGap = cardWidth + gap;
-      const newIndex = Math.round(scrollLeft / cardWithGap);
+      const containerPadding = parseInt(getComputedStyle(container).paddingLeft || '0');
+      const scrollPosition = scrollLeft + containerPadding;
+      
+      // Find which card is currently in view
+      let newIndex = 0;
+      let minDistance = Infinity;
+      
+      cardRefs.current.forEach((card, index) => {
+        if (card) {
+          const cardLeft = card.offsetLeft;
+          const cardCenter = cardLeft + card.offsetWidth / 2;
+          const distance = Math.abs(scrollPosition + container.clientWidth / 2 - cardCenter);
+          
+          if (distance < minDistance) {
+            minDistance = distance;
+            newIndex = index;
+          }
+        }
+      });
+      
       setCurrentIndex(Math.min(Math.max(0, newIndex), maxIndex));
     };
 
@@ -184,15 +218,17 @@ export default function Showcase() {
       <div className="w-full">
         {/* Carousel Container - Full width, no padding */}
         <div className="relative">
-          {/* Scrollable Cards Container - Smooth horizontal scroll with snap */}
+          {/* Scrollable Cards Container - Smooth horizontal scroll with snap, asymmetric padding for cinematic flow */}
           <div
             ref={scrollContainerRef}
-            className="flex gap-6 sm:gap-8 md:gap-10 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth px-4 sm:px-6 md:px-8 lg:px-16 xl:px-24"
+            className="flex gap-6 sm:gap-8 md:gap-10 overflow-x-auto scrollbar-hide snap-x snap-mandatory scroll-smooth"
             style={{
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
               scrollBehavior: 'smooth',
               WebkitOverflowScrolling: 'touch',
+              paddingLeft: 'clamp(1rem, 3vw, 3rem)',
+              paddingRight: 'clamp(1rem, 12vw, 8rem)',
             }}
           >
             {showcaseItems.map((item, index) => (
@@ -203,7 +239,7 @@ export default function Showcase() {
                 }}
                 className="group relative bg-white rounded-3xl overflow-hidden border border-gray-200/30 shadow-sm flex-shrink-0 snap-start snap-always w-[85vw] sm:w-[380px]"
                 style={{
-                  scrollSnapAlign: 'center',
+                  scrollSnapAlign: index === 0 ? 'start' : 'center',
                 }}
               >
                 {/* Card Image Container - All hover effects clipped inside */}
@@ -375,7 +411,7 @@ export default function Showcase() {
           </div>
 
           {/* Navigation Buttons - Positioned below cards */}
-          <div className="absolute -bottom-12 sm:-bottom-14 md:-bottom-16 right-4 sm:right-6 md:right-8 lg:right-12 flex gap-2 z-30">
+          <div className="absolute top-full mt-6 sm:mt-8 md:mt-10 right-4 sm:right-6 md:right-8 lg:right-12 flex gap-2 z-30">
             <button
               onClick={handlePrev}
               disabled={currentIndex === 0}
