@@ -1045,35 +1045,38 @@ export default function GeneratePage() {
                   />
                 )}
               </ImageGeneration>
-              <div className="p-3 flex gap-2 bg-white rounded-b-2xl border-x border-b border-neutral-200">
-                {message.canRegenerate && (
-                  <button
-                    onClick={handleRegeneratePreview}
-                    disabled={generatingPreview}
-                    className="flex-1 px-3 py-2 text-sm bg-neutral-100 text-black rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50"
-                  >
-                    Regenerate
-                  </button>
-                )}
-                {message.canGenerate3D && (
-                  <button
-                    onClick={() => {
-                      if (message.imageUrl) {
-                        // Use the image from the chat message
-                        setPreviewImageUrl(message.imageUrl);
-                        setPreviewId(message.jobId || null);
-                        handleGenerate3D();
-                      } else {
-                        handleImageTo3D();
-                      }
-                    }}
-                    disabled={loading || generatingPreview}
-                    className="flex-1 px-3 py-2 text-sm bg-black text-white rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50"
-                  >
-                    Generate 3D
-                  </button>
-                )}
-              </div>
+              {/* Only show buttons for generated preview images, not uploaded images */}
+              {(message.canRegenerate || message.canGenerate3D) && (
+                <div className="p-3 flex gap-2 bg-white rounded-b-2xl border-x border-b border-neutral-200">
+                  {message.canRegenerate && (
+                    <button
+                      onClick={handleRegeneratePreview}
+                      disabled={generatingPreview}
+                      className="flex-1 px-3 py-2 text-sm bg-neutral-100 text-black rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50"
+                    >
+                      Regenerate
+                    </button>
+                  )}
+                  {message.canGenerate3D && (
+                    <button
+                      onClick={() => {
+                        if (message.imageUrl) {
+                          // Use the image from the chat message
+                          setPreviewImageUrl(message.imageUrl);
+                          setPreviewId(message.jobId || null);
+                          handleGenerate3D();
+                        } else {
+                          handleImageTo3D();
+                        }
+                      }}
+                      disabled={loading || generatingPreview}
+                      className="flex-1 px-3 py-2 text-sm bg-black text-white rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                    >
+                      Generate 3D
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );
