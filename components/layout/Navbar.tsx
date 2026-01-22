@@ -8,8 +8,8 @@ import {
   SignUpButton,
   SignedIn,
   SignedOut,
-  UserButton,
 } from "@clerk/nextjs";
+import PremiumUserButton from "../PremiumUserButton";
 
 interface NavbarProps {
   variant?: "hero" | "default";
@@ -239,7 +239,7 @@ export default function Navbar({ variant = "hero", pathname = "/" }: NavbarProps
                 Generate
               </Link>
               )}
-              <UserButton
+              <PremiumUserButton
                 afterSignOutUrl="/"
                 appearance={{
                   elements: {

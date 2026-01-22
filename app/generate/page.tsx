@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useAuth, SignInButton, UserButton, SignedIn } from "@clerk/nextjs";
+import { useAuth, SignInButton, SignedIn } from "@clerk/nextjs";
+import PremiumUserButton from "../../components/PremiumUserButton";
 import Link from "next/link";
 import { submitTextTo3D, submitImageTo3D, generatePreviewImage, registerJobWithPreview, fetchHistory, fetchStatus, fetchQueueInfo, BackendJob, Job, QueueInfo, getGlbUrl, getProxyGlbUrl, updateJobName, notifyGpuOffline } from "../../lib/api";
 import { ThreeViewer } from "../../components/ThreeViewer";
@@ -1456,7 +1457,7 @@ export default function GeneratePage() {
                 </svg>
                 <span className="hidden sm:inline">Library</span>
               </Link>
-              <UserButton
+              <PremiumUserButton
                 afterSignOutUrl="/"
                 appearance={{
                   elements: {

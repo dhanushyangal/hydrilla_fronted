@@ -792,3 +792,110 @@ export async function getCurrentUser(getToken: () => Promise<string | null>): Pr
     return null;
   }
 }
+
+/**
+ * Create early access payment link
+ */
+export async function createEarlyAccessPayment(
+  email: string,
+  getToken?: () => Promise<string | null>
+): Promise<{ paymentId: string; paymentLink: string; status: string }> {
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  
+  if (getToken) {
+    const token = await getToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+
+  const url = `${backendBase}/api/payments/early-access/create`;
+  console.log("Creating payment link:", { url, email, backendBase });
+
+  try {
+    const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ email }),
+  });
+
+  if (!res.ok) {
+      let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+      let errorData: any = null;
+      
+      try {
+        errorData = await res.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch {
+        // If response is not JSON, use status text
+        const text = await res.text();
+        if (text) errorMessage = text;
+      }
+      
+      // Handle ALREADY_HAS_ACCESS status (409 Conflict)
+      if (res.status === 409 || errorData?.status === "ALREADY_HAS_ACCESS" || errorData?.error === "ALREADY_HAS_ACCESS") {
+        const error = new Error(errorData?.message || errorData?.error || "This email already has early access");
+        (error as any).status = "ALREADY_HAS_ACCESS";
+        (error as any).payment = errorData?.payment;
+        throw error;
+      }
+      
+      console.error("Payment creation failed:", { status: res.status, statusText: res.statusText, errorMessage });
+      throw new Error(errorMessage);
+    }
+
+    const data = await res.json();
+    console.log("Payment link created:", { sessionId: data.sessionId, hasLink: !!data.paymentLink });
+    
+    // Handle new response format (no paymentId, only paymentLink)
+    return {
+      paymentId: data.sessionId || data.paymentLink || "pending",
+      paymentLink: data.paymentLink,
+      status: data.status || "pending",
+    };
+  } catch (err: any) {
+    console.error("Network error creating payment:", err);
+    // Re-throw with more context
+    if (err.name === "TypeError" && err.message.includes("fetch")) {
+      throw new Error(`Cannot connect to backend at ${backendBase}. Please check if the server is running.`);
+    }
+    throw err;
+  }
+}
+
+/**
+ * Check if user has early access (paid)
+ */
+export async function checkEarlyAccess(
+  email?: string,
+  getToken?: () => Promise<string | null>
+): Promise<{ hasAccess: boolean; accessInfo: any }> {
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  
+  if (getToken) {
+    const token = await getToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+
+  const url = email 
+    ? `${backendBase}/api/payments/early-access/check?email=${encodeURIComponent(email)}`
+    : `${backendBase}/api/payments/early-access/check`;
+
+  try {
+    const res = await fetch(url, { headers });
+
+    if (!res.ok) {
+      return { hasAccess: false, accessInfo: null };
+    }
+
+    const data = await res.json();
+    return { 
+      hasAccess: data.hasAccess || false, 
+      accessInfo: data.accessInfo || null 
+    };
+  } catch {
+    return { hasAccess: false, accessInfo: null };
+  }
+}

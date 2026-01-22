@@ -6,8 +6,9 @@ import {
   SignUpButton,
   SignedIn,
   SignedOut,
-  UserButton,
 } from "@clerk/nextjs";
+import PremiumUserButton from "./PremiumUserButton";
+import EarlyAccessBadge from "./EarlyAccessBadge";
 
 
 export function Navigation() {
@@ -44,7 +45,8 @@ export function Navigation() {
               Library
             </a>
             <div className="h-4 w-px bg-neutral-200"></div>
-            <UserButton
+            <EarlyAccessBadge />
+            <PremiumUserButton
               afterSignOutUrl="/"
               appearance={{
                 elements: {
@@ -69,9 +71,10 @@ export function Navigation() {
         </nav>
 
         {/* Mobile Menu Button */}
-        <div className="flex md:hidden items-center gap-3">
+        <div className="flex md:hidden items-center gap-2">
           <SignedIn>
-            <UserButton
+            <EarlyAccessBadge />
+            <PremiumUserButton
               afterSignOutUrl="/"
               appearance={{
                 elements: {
