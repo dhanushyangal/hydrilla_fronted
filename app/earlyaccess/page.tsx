@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
 import Image from "next/image";
@@ -37,7 +37,20 @@ function useScrollAnimation() {
   return { ref, isVisible };
 }
 
-export default function EarlyAccessPage() {
+// Loading component for Suspense fallback
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 mx-auto mb-4 border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main content component that uses useSearchParams
+function EarlyAccessContent() {
   const { userId, getToken, isSignedIn } = useAuth();
   const { user } = useUser();
   const searchParams = useSearchParams();
@@ -46,7 +59,7 @@ export default function EarlyAccessPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const heroSectionRef = useRef<HTMLElement>(null);
-  const { ref: paymentSectionRef, isVisible: paymentVisible } = useScrollAnimation();
+  const { ref: paymentSectionRef } = useScrollAnimation();
   
   // Get user's account email
   const userEmail = user?.emailAddresses?.[0]?.emailAddress || user?.primaryEmailAddress?.emailAddress || null;
@@ -132,12 +145,12 @@ export default function EarlyAccessPage() {
         setError("Failed to create payment link. Please try again.");
         setIsLoading(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error creating payment:", err);
       let errorMessage = "Failed to create payment link. Please try again.";
       
       // Handle ALREADY_HAS_ACCESS status from backend
-      if (err.message) {
+      if (err instanceof Error && err.message) {
         if (err.message.includes("ALREADY_HAS_ACCESS") || 
             err.message.includes("already has early access") ||
             err.message.includes("This email already has early access")) {
@@ -476,5 +489,14 @@ export default function EarlyAccessPage() {
 
       <Footer />
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function EarlyAccessPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <EarlyAccessContent />
+    </Suspense>
   );
 }

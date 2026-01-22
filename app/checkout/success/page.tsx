@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth, useUser } from "@clerk/nextjs";
 import Link from "next/link";
@@ -8,7 +8,20 @@ import Image from "next/image";
 import Footer from "../../../components/layout/Footer";
 import { checkEarlyAccess } from "../../../lib/api";
 
-export default function CheckoutSuccessPage() {
+// Loading component for Suspense fallback
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 mx-auto mb-4 border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main content component that uses useSearchParams
+function CheckoutSuccessContent() {
   const { isSignedIn, getToken } = useAuth();
   const { user } = useUser();
   const searchParams = useSearchParams();
@@ -138,7 +151,7 @@ export default function CheckoutSuccessPage() {
                     className="text-lg sm:text-xl text-gray-700 mb-8"
                     style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
                   >
-                    Your payment was successful, but we're still processing your access. Please wait a moment and refresh this page.
+                    Your payment was successful, but we&apos;re still processing your access. Please wait a moment and refresh this page.
                   </p>
                   <p
                     className="text-sm sm:text-base text-gray-600 mb-8"
@@ -170,5 +183,14 @@ export default function CheckoutSuccessPage() {
       </section>
       <Footer />
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <CheckoutSuccessContent />
+    </Suspense>
   );
 }
