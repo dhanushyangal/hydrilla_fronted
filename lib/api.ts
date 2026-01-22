@@ -11,6 +11,11 @@ const getBackendBase = (): string => {
 
 const backendBase = getBackendBase();
 
+// Log the backend URL being used (helpful for debugging)
+if (typeof window !== 'undefined') {
+  console.log("🌐 Backend URL configured:", backendBase);
+}
+
 /**
  * Check if an error is a network error indicating the API is unavailable
  */
@@ -810,26 +815,30 @@ export async function createEarlyAccessPayment(
   }
 
   const url = `${backendBase}/api/payments/early-access/create`;
-  console.log("Creating payment link:", { url, email, backendBase });
+  console.log("🔗 Creating payment link:", { url, email, backendBase });
 
   try {
     const res = await fetch(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ email }),
-  });
+      method: "POST",
+      headers,
+      body: JSON.stringify({ email }),
+    });
 
-  if (!res.ok) {
+    console.log("📡 Backend response:", { status: res.status, statusText: res.statusText, ok: res.ok });
+
+    if (!res.ok) {
       let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
       let errorData: any = null;
       
+      // Clone response so we can try JSON first, then text if that fails
+      const responseText = await res.text();
+      
       try {
-        errorData = await res.json();
+        errorData = JSON.parse(responseText);
         errorMessage = errorData.error || errorData.message || errorMessage;
       } catch {
-        // If response is not JSON, use status text
-        const text = await res.text();
-        if (text) errorMessage = text;
+        // Response is not JSON, use the text directly
+        if (responseText) errorMessage = responseText;
       }
       
       // Handle ALREADY_HAS_ACCESS status (409 Conflict)
@@ -840,8 +849,14 @@ export async function createEarlyAccessPayment(
         throw error;
       }
       
-      console.error("Payment creation failed:", { status: res.status, statusText: res.statusText, errorMessage });
-      throw new Error(errorMessage);
+      console.error("❌ Payment creation failed:", { 
+        status: res.status, 
+        statusText: res.statusText, 
+        errorMessage,
+        responseText: responseText.substring(0, 500),
+        backendUrl: backendBase
+      });
+      throw new Error(errorMessage || "Failed to create payment record");
     }
 
     const data = await res.json();
