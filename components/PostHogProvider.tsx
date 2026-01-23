@@ -16,8 +16,13 @@ export default function PostHogProvider() {
       });
     };
 
+    // Ensure we're in browser environment
+    if (typeof window === "undefined") {
+      return;
+    }
+
     // Use requestIdleCallback if available (better performance)
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    if ("requestIdleCallback" in window) {
       requestIdleCallback(loadPostHog, { timeout: 2000 });
     } else {
       // Fallback: load after a delay or when page is interactive
