@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Footer() {
   return (
@@ -200,10 +201,13 @@ export default function Footer() {
                   className="text-black hover:text-gray-700 transition-colors"
                   aria-label="Reddit"
                 >
-                  <img 
-                    src="https://img.icons8.com/?size=100&id=Aj0b870PMQIm&format=png&color=000000" 
-                    alt="Reddit" 
+                  <Image
+                    src="https://img.icons8.com/?size=100&id=Aj0b870PMQIm&format=png&color=000000"
+                    alt="Reddit"
+                    width={20}
+                    height={20}
                     className="w-5 h-5"
+                    unoptimized
                   />
                 </a>
               </div>
@@ -278,10 +282,13 @@ export default function Footer() {
                   className="text-black hover:text-gray-700 transition-colors"
                   aria-label="Reddit"
                 >
-                  <img 
-                    src="https://img.icons8.com/?size=100&id=Aj0b870PMQIm&format=png&color=000000" 
-                    alt="Reddit" 
+                  <Image
+                    src="https://img.icons8.com/?size=100&id=Aj0b870PMQIm&format=png&color=000000"
+                    alt="Reddit"
+                    width={20}
+                    height={20}
                     className="w-5 h-5"
+                    unoptimized
                   />
                 </a>
               </div>

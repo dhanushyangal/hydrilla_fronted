@@ -189,6 +189,8 @@ export default function Navbar({ variant = "hero", pathname = "/" }: NavbarProps
                 alt="Hydrilla Logo"
                 fill
                 className="object-contain"
+                sizes="(max-width: 640px) 32px, 40px"
+                priority
               />
             </div>
             <span 

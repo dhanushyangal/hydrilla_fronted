@@ -44,18 +44,39 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     >
     <html lang="en" className={`${dmSans.variable} ${spaceGrotesk.variable}`}>
         <head>
-          {/* Google tag (gtag.js) */}
-          <script
-            async
-            src="https://www.googletagmanager.com/gtag/js?id=G-5DMYT9CZ0S"
-          />
+          {/* Preconnect to external domains for faster resource loading */}
+          <link rel="preconnect" href="https://img.icons8.com" />
+          <link rel="preconnect" href="https://www.googletagmanager.com" />
+          <link rel="preconnect" href="https://app.posthog.com" />
+          <link rel="preconnect" href="https://us-assets.i.posthog.com" />
+          <link rel="dns-prefetch" href="https://clerk.hydrilla.ai" />
+          
+          {/* Google tag (gtag.js) - Loaded after page is interactive */}
           <script
             dangerouslySetInnerHTML={{
               __html: `
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', 'G-5DMYT9CZ0S');
+                (function() {
+                  // Load gtag.js after page is interactive
+                  if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', loadGtag);
+                  } else {
+                    setTimeout(loadGtag, 0);
+                  }
+                  
+                  function loadGtag() {
+                    var script = document.createElement('script');
+                    script.async = true;
+                    script.src = 'https://www.googletagmanager.com/gtag/js?id=G-5DMYT9CZ0S';
+                    document.head.appendChild(script);
+                    
+                    window.dataLayer = window.dataLayer || [];
+                    function gtag(){dataLayer.push(arguments);}
+                    gtag('js', new Date());
+                    gtag('config', 'G-5DMYT9CZ0S', {
+                      page_path: window.location.pathname,
+                    });
+                  }
+                })();
               `,
             }}
           />

@@ -38,6 +38,8 @@ export default async function Home() {
                   width={128}
                   height={128}
                   className="w-full h-full object-contain"
+                  sizes="(max-width: 640px) 96px, (max-width: 768px) 112px, 128px"
+                  priority
                 />
               </div>
               <h1 
