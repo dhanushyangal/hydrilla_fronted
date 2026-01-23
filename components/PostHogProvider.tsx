@@ -9,6 +9,11 @@ import { useEffect } from "react";
  */
 export default function PostHogProvider() {
   useEffect(() => {
+    // Ensure we're in browser environment
+    if (typeof window === "undefined") {
+      return;
+    }
+
     // Only load PostHog after page is interactive
     const loadPostHog = () => {
       import("../instrumentation-client").catch((err) => {
@@ -16,19 +21,14 @@ export default function PostHogProvider() {
       });
     };
 
-    // Ensure we're in browser environment
-    if (typeof window === "undefined") {
-      return;
-    }
-
     // Use requestIdleCallback if available (better performance)
-    if ("requestIdleCallback" in window) {
-      requestIdleCallback(loadPostHog, { timeout: 2000 });
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      window.requestIdleCallback(loadPostHog, { timeout: 2000 });
     } else {
       // Fallback: load after a delay or when page is interactive
-      if (document.readyState === "complete") {
+      if (typeof document !== "undefined" && document.readyState === "complete") {
         setTimeout(loadPostHog, 2000);
-      } else {
+      } else if (typeof window !== "undefined") {
         window.addEventListener("load", () => {
           setTimeout(loadPostHog, 2000);
         });
