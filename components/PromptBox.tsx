@@ -293,13 +293,27 @@ export function PromptBox({
           />
           
           <div className="flex items-center justify-between mt-1 gap-3 relative z-10">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Image Upload Button - Always visible */}
               <div className="relative group/image-btn">
                 <button 
-                  onClick={() => !images.length && !value.trim() && fileInputRef.current?.click()}
-                  disabled={disabled || images.length > 0 || value.trim().length > 0}
-                  className="p-2 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                  title={images.length > 0 ? "Image already uploaded" : value.trim() ? "Clear text to upload image" : "Upload image"}
+                  onClick={() => {
+                    if (!disabled && !images.length && !value.trim() && fileInputRef.current) {
+                      fileInputRef.current.click();
+                    } else if (value.trim() && !images.length) {
+                      // Clear text to allow image upload
+                      onChange("");
+                    }
+                  }}
+                  disabled={disabled}
+                  className={`p-2 rounded-lg backdrop-blur-sm border transition-all transform hover:scale-105 shadow-sm ${
+                    disabled 
+                      ? 'bg-white/10 border-white/20 opacity-40 cursor-not-allowed' 
+                      : images.length > 0 || value.trim().length > 0
+                      ? 'bg-white/15 border-white/25 opacity-60 hover:opacity-80'
+                      : 'bg-white/20 border-white/30 hover:bg-white/30'
+                  }`}
+                  title={images.length > 0 ? "Image already uploaded" : value.trim() ? "Click to clear text and upload image" : "Upload image"}
                   aria-label="Upload image"
                 >
                   <ImageIcon size={18} strokeWidth={1.5} className="text-gray-700" />
@@ -311,7 +325,7 @@ export function PromptBox({
                       <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
-                      <span>You cannot use image and text at the same time</span>
+                      <span>Click to clear text and upload image</span>
                     </div>
                     {/* Tooltip arrow */}
                     <div className="absolute top-full left-3 sm:left-4 -mt-1">
@@ -321,25 +335,41 @@ export function PromptBox({
                 )}
               </div>
               
-              {/* Camera Button */}
+              {/* Camera Button - Always visible */}
               <div className="relative group/camera-btn">
                 <button 
                   onClick={() => {
-                    if (!images.length && !value.trim() && !disabled) {
+                    if (disabled) return;
+                    
+                    if (value.trim() && !images.length) {
+                      // Clear text to allow camera capture
+                      onChange("");
+                      return;
+                    }
+                    
+                    if (!images.length && !value.trim()) {
                       // Check if device supports native camera capture (mobile)
-                      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                      if (isMobile && cameraInputRef.current) {
-                        // Use native camera on mobile
-                        cameraInputRef.current.click();
-                      } else {
-                        // Use camera modal on desktop
-                        setShowCameraModal(true);
+                      if (typeof window !== "undefined") {
+                        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                        if (isMobile && cameraInputRef.current) {
+                          // Use native camera on mobile
+                          cameraInputRef.current.click();
+                        } else {
+                          // Use camera modal on desktop
+                          setShowCameraModal(true);
+                        }
                       }
                     }
                   }}
-                  disabled={disabled || images.length > 0 || value.trim().length > 0}
-                  className="p-2 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                  title={images.length > 0 ? "Image already uploaded" : value.trim() ? "Clear text to capture image" : "Capture image with camera"}
+                  disabled={disabled}
+                  className={`p-2 rounded-lg backdrop-blur-sm border transition-all transform hover:scale-105 shadow-sm ${
+                    disabled 
+                      ? 'bg-white/10 border-white/20 opacity-40 cursor-not-allowed' 
+                      : images.length > 0 || value.trim().length > 0
+                      ? 'bg-white/15 border-white/25 opacity-60 hover:opacity-80'
+                      : 'bg-white/20 border-white/30 hover:bg-white/30'
+                  }`}
+                  title={images.length > 0 ? "Image already uploaded" : value.trim() ? "Click to clear text and capture image" : "Capture image with camera"}
                   aria-label="Capture image with camera"
                 >
                   <Camera size={18} strokeWidth={1.5} className="text-gray-700" />
@@ -351,7 +381,7 @@ export function PromptBox({
                       <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
-                      <span>You cannot use image and text at the same time</span>
+                      <span>Click to clear text and capture image</span>
                     </div>
                     {/* Tooltip arrow */}
                     <div className="absolute top-full left-3 sm:left-4 -mt-1">
