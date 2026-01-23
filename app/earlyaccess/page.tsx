@@ -64,6 +64,11 @@ function EarlyAccessContent() {
   // Get user's account email
   const userEmail = user?.emailAddresses?.[0]?.emailAddress || user?.primaryEmailAddress?.emailAddress || null;
 
+  // Scroll to top on page load
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Check if user already has access on page load
   useEffect(() => {
     const checkAccess = async () => {
@@ -346,75 +351,62 @@ function EarlyAccessContent() {
             </div>
           )}
 
-          {/* Payment Card */}
+          {/* Payment Card - Minimal & Premium */}
           <div 
-            className="bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 rounded-3xl p-8 sm:p-10 md:p-12 lg:p-16 shadow-2xl border border-gray-300/50 relative overflow-hidden"
+            className="bg-white rounded-2xl p-8 sm:p-10 md:p-12 shadow-sm border border-gray-200/50 relative overflow-hidden"
           >
-            <div className="absolute inset-0 opacity-30" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-            }}></div>
-
             <div className="relative z-10">
-              <div className="text-center mb-8 sm:mb-10">
-                <p 
-                  className="text-sm sm:text-base text-gray-600 mb-2 uppercase tracking-wider"
-                  style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
-                >
-                  Fair pricing.
-                </p>
-                <p 
-                  className="text-sm sm:text-base text-gray-600 mb-6 uppercase tracking-wider"
-                  style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
-                >
-                  No hidden fees.
-                </p>
-                
-                <div className="flex items-baseline justify-center gap-2 mb-8">
+              <div className="text-center mb-10">
+                <div className="flex items-baseline justify-center gap-2 mb-6">
                   <span 
-                    className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold text-lime-500"
+                    className="text-6xl sm:text-7xl md:text-8xl font-bold text-black"
                     style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
                   >
-                    $59
+                    $3
                   </span>
                   <span 
-                    className="text-lg sm:text-xl md:text-2xl text-gray-600"
-                    style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
+                    className="text-base sm:text-lg text-gray-500 font-medium"
+                    style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
                   >
-                    per<br />month
+                    /month
                   </span>
                 </div>
+                <p 
+                  className="text-sm text-gray-500 uppercase tracking-wider mb-8"
+                  style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
+                >
+                  Early Access Pricing
+                </p>
               </div>
 
-              <div className="mb-8 sm:mb-10 space-y-4 sm:space-y-5">
+              <div className="mb-10 space-y-3">
                 {[
-                  "Free during beta",
-                  "Unlimited 3D generation jobs",
-                  "Priority queue access",
-                  "Advanced generation features",
-                  "Early access to new tools",
+                  "Unlimited 3D generation",
+                  "Priority processing",
+                  "Advanced features",
+                  "Early tool access",
                   "Premium support",
-                  "Export in multiple formats",
+                  "Multiple export formats",
                   "High-resolution outputs",
-                  "Commercial usage rights",
-                  "Direct access to founders",
+                  "Commercial rights",
                 ].map((feature, index) => (
-                  <div key={index} className="flex items-start gap-3">
+                  <div key={index} className="flex items-center gap-3">
                     <svg
-                      className="w-5 h-5 sm:w-6 sm:h-6 text-lime-500 mt-0.5 flex-shrink-0"
+                      className="w-5 h-5 text-black flex-shrink-0"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
+                      strokeWidth={2.5}
                     >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        strokeWidth={2}
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
                     <p 
-                      className="text-base sm:text-lg md:text-xl text-gray-700"
-                      style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
+                      className="text-base text-gray-700"
+                      style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
                     >
                       {feature}
                     </p>
