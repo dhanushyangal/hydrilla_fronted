@@ -9,6 +9,11 @@ import { useEffect } from "react";
  */
 export default function PostHogProvider() {
   useEffect(() => {
+    // Early return if not in browser - this check must be first
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return;
+    }
+
     // Only load PostHog after page is interactive
     const loadPostHog = () => {
       import("../instrumentation-client").catch((err) => {
@@ -16,29 +21,24 @@ export default function PostHogProvider() {
       });
     };
 
-    // Early return if not in browser
-    if (typeof window === "undefined" || typeof document === "undefined") {
+    // At this point, TypeScript knows window and document exist
+    // Use explicit type assertion to help TypeScript
+    const win = window as Window;
+    const doc = document as Document;
+
+    // Check for requestIdleCallback support
+    if (typeof (win as any).requestIdleCallback === "function") {
+      (win as any).requestIdleCallback(loadPostHog, { timeout: 2000 });
       return;
     }
 
-    // Explicitly type window and document after the check
-    const win = window as Window & typeof globalThis;
-    const doc = document as Document;
-
-    // Check for requestIdleCallback using typeof to avoid narrowing issues
-    const hasRequestIdleCallback = typeof (win as any).requestIdleCallback === "function";
-
-    if (hasRequestIdleCallback) {
-      (win as any).requestIdleCallback(loadPostHog, { timeout: 2000 });
+    // Fallback: load after a delay or when page is interactive
+    if (doc.readyState === "complete") {
+      setTimeout(loadPostHog, 2000);
     } else {
-      // Fallback: load after a delay or when page is interactive
-      if (doc.readyState === "complete") {
+      win.addEventListener("load", () => {
         setTimeout(loadPostHog, 2000);
-      } else {
-        win.addEventListener("load", () => {
-          setTimeout(loadPostHog, 2000);
-        });
-      }
+      });
     }
   }, []);
 
