@@ -6,7 +6,7 @@ import Footer from "../../components/layout/Footer";
 export default function PrivacyPolicyPage() {
   // Scroll to top on page load
   useEffect(() => {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
   return (

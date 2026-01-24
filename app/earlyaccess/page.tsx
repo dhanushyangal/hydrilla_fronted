@@ -64,9 +64,9 @@ function EarlyAccessContent() {
   // Get user's account email
   const userEmail = user?.emailAddresses?.[0]?.emailAddress || user?.primaryEmailAddress?.emailAddress || null;
 
-  // Scroll to top on page load
+  // Scroll to top on page load - instant
   useEffect(() => {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
   // Check if user already has access on page load
@@ -193,34 +193,31 @@ function EarlyAccessContent() {
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-black/30"></div>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
           </div>
           
           <div className="relative z-10 container mx-auto px-4 sm:px-6 md:px-8 pt-32 sm:pt-40 md:pt-48 pb-12 sm:pb-16 md:pb-20 flex flex-col items-center justify-center min-h-screen">
             <div className="max-w-2xl mx-auto text-center">
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 sm:p-10 md:p-12 shadow-2xl border border-white/20">
+              <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 sm:p-10 md:p-14 shadow-2xl border border-white/20">
                 <div className="mb-6">
-                  <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-silver-400 to-silver-600 rounded-full flex items-center justify-center">
-                    <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="w-20 h-20 mx-auto mb-6 bg-white rounded-full flex items-center justify-center shadow-lg">
+                    <svg className="w-10 h-10 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <h2 
-                    className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-4"
-                    style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                    className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 font-dm-sans"
                   >
                     You Already Have Hydrilla Pass
                   </h2>
                   <p 
-                    className="text-lg sm:text-xl text-gray-700 mb-8"
-                    style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
+                    className="text-lg sm:text-xl text-white/90 mb-8 font-space-grotesk"
                   >
                     Thank you for being an early supporter! You have full access to all premium features.
                   </p>
                   <Link
                     href="/"
-                    className="inline-flex items-center gap-2 bg-black text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold hover:bg-gray-900 transition-all duration-300 shadow-xl"
-                    style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                    className="inline-flex items-center gap-2 bg-white text-black px-8 sm:px-10 py-4 sm:py-5 rounded-full text-base sm:text-lg font-bold hover:bg-gray-100 transition-all duration-300 shadow-xl font-dm-sans"
                   >
                     Go to Home
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -253,28 +250,25 @@ function EarlyAccessContent() {
               className="object-cover"
               priority
             />
-            <div className="absolute inset-0 bg-black/30"></div>
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
           </div>
           
           <div className="relative z-10 container mx-auto px-4 sm:px-6 md:px-8 pt-32 sm:pt-40 md:pt-48 pb-12 sm:pb-16 md:pb-20 flex flex-col items-center justify-center min-h-screen">
             <div className="max-w-2xl mx-auto text-center">
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 sm:p-10 md:p-12 shadow-2xl border border-white/20">
+              <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 sm:p-10 md:p-14 shadow-2xl border border-white/20">
                 <h2 
-                  className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-4"
-                  style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                  className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 font-dm-sans"
                 >
                   Sign In Required
                 </h2>
                 <p 
-                  className="text-lg sm:text-xl text-gray-700 mb-8"
-                  style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
+                  className="text-lg sm:text-xl text-white/90 mb-8 font-space-grotesk"
                 >
                   Please sign in to get early access to Hydrilla.
                 </p>
                 <Link
                   href="/sign-in"
-                  className="inline-flex items-center gap-2 bg-black text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-base sm:text-lg font-bold hover:bg-gray-900 transition-all duration-300 shadow-xl"
-                  style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                  className="inline-flex items-center gap-2 bg-white text-black px-8 sm:px-10 py-4 sm:py-5 rounded-full text-base sm:text-lg font-bold hover:bg-gray-100 transition-all duration-300 shadow-xl font-dm-sans"
                 >
                   Sign In
                 </Link>
@@ -302,21 +296,19 @@ function EarlyAccessContent() {
             className="object-cover"
             priority
           />
-          <div className="absolute inset-0 bg-black/30"></div>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
         </div>
         
         <div className="relative z-10 container mx-auto px-4 sm:px-6 md:px-8 pt-32 sm:pt-40 md:pt-48 pb-12 sm:pb-16 md:pb-20 flex flex-col items-center justify-center min-h-screen">
           <p 
-            className="text-xs sm:text-sm md:text-base text-white/90 mb-6 sm:mb-8 tracking-[0.15em] uppercase font-medium animate-fade-in"
-            style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
+            className="text-xs sm:text-sm md:text-base text-white/90 mb-6 sm:mb-8 tracking-[0.2em] uppercase font-medium animate-fade-in font-space-grotesk"
           >
             ( Early Access )
           </p>
           
           <h1 className="text-center animate-fade-in-up mb-6 sm:mb-8">
             <span 
-              className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-[1.05] tracking-[-0.02em] font-bold drop-shadow-2xl"
-              style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+              className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-[1.05] tracking-[-0.02em] font-bold drop-shadow-2xl font-dm-sans"
             >
               Join the Future
             </span>
@@ -324,8 +316,7 @@ function EarlyAccessContent() {
 
           <div className="text-center max-w-3xl mx-auto animate-fade-in-up animate-delay-200">
             <p 
-              className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/90 leading-relaxed mb-4"
-              style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
+              className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/90 leading-relaxed mb-4 font-space-grotesk"
             >
               Be part of the next generation of 3D creation. Get early access to cutting-edge features, priority support, and exclusive updates.
             </p>
@@ -336,15 +327,14 @@ function EarlyAccessContent() {
       {/* Payment Card Section */}
       <section 
         ref={paymentSectionRef}
-        className="relative w-full bg-gradient-to-b from-neutral-50 to-white py-20 sm:py-24 md:py-32 px-4 sm:px-6 md:px-8"
+        className="relative w-full bg-neutral-50 py-20 sm:py-24 md:py-32 px-4 sm:px-6 md:px-8"
       >
         <div className="max-w-4xl mx-auto">
           {/* Payment Status Messages */}
           {searchParams.get("status") === "success" && (
             <div className="mb-8 p-6 bg-green-50 border border-green-200 rounded-2xl text-center">
               <p 
-                className="text-lg sm:text-xl text-green-800 font-medium mb-2"
-                style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                className="text-lg sm:text-xl text-green-800 font-medium mb-2 font-dm-sans"
               >
                 ✅ Payment successful! Redirecting to home...
               </p>
@@ -353,60 +343,65 @@ function EarlyAccessContent() {
 
           {/* Payment Card - Minimal & Premium */}
           <div 
-            className="bg-white rounded-2xl p-8 sm:p-10 md:p-12 shadow-sm border border-gray-200/50 relative overflow-hidden"
+            className="bg-white rounded-3xl p-8 sm:p-10 md:p-14 shadow-2xl border border-gray-100 relative overflow-hidden transform hover:scale-[1.01] transition-transform duration-500"
           >
+            {/* Subtle premium gradient glow */}
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
             <div className="relative z-10">
-              <div className="text-center mb-10">
-                <div className="flex items-baseline justify-center gap-2 mb-6">
-                  <span 
-                    className="text-6xl sm:text-7xl md:text-8xl font-bold text-black"
-                    style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
-                  >
-                    $3
-                  </span>
-                  <span 
-                    className="text-base sm:text-lg text-gray-500 font-medium"
-                    style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
-                  >
-                    /month
+              <div className="text-center mb-12 border-b border-gray-100 pb-10">
+                <div className="inline-block mb-4">
+                  <span className="px-4 py-1.5 rounded-full bg-black text-white text-xs font-bold tracking-widest uppercase font-dm-sans">
+                    One-Time Payment
                   </span>
                 </div>
+                
+                <div className="flex items-center justify-center gap-1 mb-2">
+                  <span 
+                    className="text-7xl sm:text-8xl md:text-9xl font-bold text-black tracking-tighter"
+                    style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                  >
+                    $1.99
+                  </span>
+                </div>
+                
                 <p 
-                  className="text-sm text-gray-500 uppercase tracking-wider mb-8"
-                  style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
+                  className="text-sm text-gray-500 uppercase tracking-widest font-space-grotesk"
                 >
-                  Early Access Pricing
+                  Lifetime Access
                 </p>
               </div>
 
-              <div className="mb-10 space-y-3">
+              <div className="grid md:grid-cols-2 gap-x-12 gap-y-6 mb-12">
                 {[
                   "Unlimited 3D generation",
-                  "Priority processing",
-                  "Advanced features",
-                  "Early tool access",
-                  "Premium support",
+                  "Priority processing queue",
+                  "Advanced 3D features",
+                  "Early access to new tools",
+                  "Premium priority support",
                   "Multiple export formats",
                   "High-resolution outputs",
-                  "Commercial rights",
+                  "Plugin for Blender",
                 ].map((feature, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <svg
-                      className="w-5 h-5 text-black flex-shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
+                  <div key={index} className="flex items-start gap-3 group">
+                    <div className="w-6 h-6 rounded-full bg-black/5 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:bg-black group-hover:text-white transition-colors duration-300">
+                      <svg
+                        className="w-3.5 h-3.5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={3}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
                     <p 
-                      className="text-base text-gray-700"
-                      style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                      className="text-base sm:text-lg text-gray-600 font-dm-sans"
                     >
                       {feature}
                     </p>
@@ -416,28 +411,25 @@ function EarlyAccessContent() {
 
               {/* User Email Display (read-only) */}
               {userEmail && (
-                <div className="mb-6 sm:mb-8 p-4 bg-white/80 rounded-xl border border-gray-200">
-                  <p 
-                    className="text-xs sm:text-sm text-gray-600 mb-1"
-                    style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
+                <div className="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
+                  <span 
+                    className="text-sm text-gray-500 font-space-grotesk"
                   >
-                    Payment will be processed for:
-                  </p>
-                  <p 
-                    className="text-sm sm:text-base font-medium text-black"
-                    style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                    Account:
+                  </span>
+                  <span 
+                    className="text-sm sm:text-base font-medium text-black font-dm-sans"
                   >
                     {userEmail}
-                  </p>
+                  </span>
                 </div>
               )}
 
               {/* Error Message */}
               {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl">
                   <p 
-                    className="text-sm text-red-600 text-center"
-                    style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
+                    className="text-sm text-red-600 text-center font-space-grotesk"
                   >
                     {error}
                   </p>
@@ -445,34 +437,32 @@ function EarlyAccessContent() {
               )}
 
               {/* Get Early Access Button */}
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {hasAccess ? (
-                  <div className="w-full bg-gray-100 text-gray-600 px-6 sm:px-8 py-4 sm:py-5 rounded-xl text-base sm:text-lg md:text-xl font-bold text-center border-2 border-gray-300">
-                    <span style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}>
-                      ✓ Early Access Already Activated
-                    </span>
+                  <div className="w-full bg-gray-50 text-gray-400 px-6 sm:px-8 py-5 rounded-2xl text-lg font-bold text-center border border-gray-200 cursor-not-allowed font-dm-sans">
+                    Early Access Already Activated
                   </div>
                 ) : (
                   <button
                     type="button"
                     onClick={handleGetEarlyAccess}
                     disabled={isLoading || !userEmail || hasAccess !== false}
-                    className="w-full bg-black text-white px-6 sm:px-8 py-4 sm:py-5 rounded-xl text-base sm:text-lg md:text-xl font-bold hover:bg-gray-900 transition-all duration-300 shadow-xl hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                    style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                    className="w-full bg-black text-white px-6 sm:px-8 py-5 rounded-2xl text-lg sm:text-xl font-bold hover:bg-gray-900 transition-all duration-300 shadow-xl hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 font-dm-sans relative overflow-hidden group"
                   >
-                    {isLoading ? "Creating checkout..." : "Get Early Access"}
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {isLoading ? "Processing..." : "Get Instant Access"}
+                      {!isLoading && (
+                        <svg className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      )}
+                    </span>
                   </button>
                 )}
-              </div>
-
-              <div className="mt-6 text-center">
-                <Link
-                  href="/"
-                  className="text-sm sm:text-base text-gray-600 hover:text-black transition-colors underline"
-                  style={{ fontFamily: 'var(--font-space-grotesk), Space Grotesk, sans-serif' }}
-                >
-                  ← Back to Home
-                </Link>
+                
+                <p className="text-xs text-center text-gray-400 font-space-grotesk">
+                  Secure payment via Dodo Payments. Instant activation.
+                </p>
               </div>
             </div>
           </div>
