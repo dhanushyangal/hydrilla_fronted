@@ -239,28 +239,28 @@ export async function generatePreviewImage(prompt: string, getToken?: () => Prom
   }
 
   try {
-    const res = await fetch(`${apiBase}/text-to-image`, {
-      method: "POST",
-      body: formData,
-    });
+  const res = await fetch(`${apiBase}/text-to-image`, {
+    method: "POST",
+    body: formData,
+  });
 
-    if (!res.ok) {
-      let errorText: string;
-      try {
-        const errorData = await res.json();
-        errorText = errorData.error || "Failed to generate preview image";
-      } catch {
-        errorText = (await res.text()) || "Failed to generate preview image";
-      }
-      throw new Error(errorText);
+  if (!res.ok) {
+    let errorText: string;
+    try {
+      const errorData = await res.json();
+      errorText = errorData.error || "Failed to generate preview image";
+    } catch {
+      errorText = (await res.text()) || "Failed to generate preview image";
     }
+    throw new Error(errorText);
+  }
 
-    const result = await res.json();
-    return {
-      image_url: result.image_url,
-      preview_id: result.preview_id,
-      queue: result.queue,  // Include queue info if available
-    };
+  const result = await res.json();
+  return {
+    image_url: result.image_url,
+    preview_id: result.preview_id,
+    queue: result.queue,  // Include queue info if available
+  };
   } catch (err: any) {
     // Check if it's a network error indicating API is unavailable
     if (isApiUnavailableError(err)) {
@@ -281,42 +281,42 @@ export async function submitTextTo3D(prompt: string, getToken?: () => Promise<st
   formData.append("prompt", prompt);
 
   try {
-    const res = await fetch(`${apiBase}/text-to-3d`, {
-      method: "POST",
-      body: formData,
-    });
+  const res = await fetch(`${apiBase}/text-to-3d`, {
+    method: "POST",
+    body: formData,
+  });
 
-    if (!res.ok) {
-      let errorText: string;
-      try {
-        const errorData = await res.json();
-        errorText = errorData.error || "Failed to submit job";
-      } catch {
-        errorText = (await res.text()) || "Failed to submit job";
+  if (!res.ok) {
+    let errorText: string;
+    try {
+      const errorData = await res.json();
+      errorText = errorData.error || "Failed to submit job";
+    } catch {
+      errorText = (await res.text()) || "Failed to submit job";
+    }
+    throw new Error(errorText);
+  }
+
+  const result = await res.json();
+
+  // Register job in backend with auth token
+  try {
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (getToken) {
+      const token = await getToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
       }
-      throw new Error(errorText);
     }
 
-    const result = await res.json();
+    await fetch(`${backendBase}/api/3d/register-job`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ job_id: result.job_id, prompt }),
+    }).catch(() => {});
+  } catch {}
 
-    // Register job in backend with auth token
-    try {
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (getToken) {
-        const token = await getToken();
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-      }
-
-      await fetch(`${backendBase}/api/3d/register-job`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ job_id: result.job_id, prompt }),
-      }).catch(() => {});
-    } catch {}
-
-    return result;
+  return result;
   } catch (err: any) {
     // Check if it's a network error indicating API is unavailable
     if (isApiUnavailableError(err)) {
@@ -384,42 +384,42 @@ export async function submitImageTo3D(
   }
 
   try {
-    const res = await fetch(`${apiBase}/image-to-3d`, {
-      method: "POST",
-      body: formData,
-    });
+  const res = await fetch(`${apiBase}/image-to-3d`, {
+    method: "POST",
+    body: formData,
+  });
 
-    if (!res.ok) {
-      let errorText: string;
-      try {
-        const errorData = await res.json();
-        errorText = errorData.error || "Failed to submit job";
-      } catch {
-        errorText = (await res.text()) || "Failed to submit job";
+  if (!res.ok) {
+    let errorText: string;
+    try {
+      const errorData = await res.json();
+      errorText = errorData.error || "Failed to submit job";
+    } catch {
+      errorText = (await res.text()) || "Failed to submit job";
+    }
+    throw new Error(errorText);
+  }
+
+  const result = await res.json();
+
+  // Register job in backend with auth token
+  try {
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (getToken) {
+      const token = await getToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
       }
-      throw new Error(errorText);
     }
 
-    const result = await res.json();
+    await fetch(`${backendBase}/api/3d/register-job`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ job_id: result.job_id, imageUrl: imageUrl || "uploaded_file" }),
+    }).catch(() => {});
+  } catch {}
 
-    // Register job in backend with auth token
-    try {
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (getToken) {
-        const token = await getToken();
-        if (token) {
-          headers["Authorization"] = `Bearer ${token}`;
-        }
-      }
-
-      await fetch(`${backendBase}/api/3d/register-job`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ job_id: result.job_id, imageUrl: imageUrl || "uploaded_file" }),
-      }).catch(() => {});
-    } catch {}
-
-    return result;
+  return result;
   } catch (err: any) {
     // Check if it's a network error indicating API is unavailable
     if (isApiUnavailableError(err)) {
@@ -496,7 +496,7 @@ export async function fetchQueueInfo(): Promise<(QueueInfo & {
         }
       } catch {
         throw new Error("GPU is currently offline. Please try again after some time.");
-      }
+    }
     }
     
     const data = await res.json();
