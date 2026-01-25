@@ -13,6 +13,7 @@ interface EarlyAccessCardProps {
   compact?: boolean;
 }
 
+
 /**
  * Early Access Card Component
  * Displays above footer on landing page
