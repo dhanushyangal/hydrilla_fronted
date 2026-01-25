@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Image as ImageIcon, Plus, ChevronDown, X } from "lucide-react";
+import { Image as ImageIcon, Plus, ChevronDown, X, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface PromptBoxProps {
@@ -30,8 +30,13 @@ export function PromptBox({
   isAtBottom = false,
 }: PromptBoxProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -60,7 +65,103 @@ export function PromptBox({
       }
       onImageUpload(file);
     }
+    // Reset input so same file can be selected again
+    if (e.target) {
+      e.target.value = "";
+    }
   };
+
+  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onImageUpload) {
+      // Clear text when image is uploaded
+      if (value.trim()) {
+        onChange("");
+      }
+      onImageUpload(file);
+    }
+    // Reset input so same file can be selected again
+    if (e.target) {
+      e.target.value = "";
+    }
+  };
+
+  // Camera modal functions
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }, // Prefer back camera
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      // Close modal if camera access fails
+      setShowCameraModal(false);
+      alert("Unable to access camera. Please check permissions and try again.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context) return;
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Convert canvas to blob, then to File
+    canvas.toBlob((blob) => {
+      if (blob && onImageUpload) {
+        const file = new File([blob], `camera-capture-${Date.now()}.jpg`, {
+          type: 'image/jpeg',
+          lastModified: Date.now(),
+        });
+        
+        // Clear text when image is uploaded
+        if (value.trim()) {
+          onChange("");
+        }
+        
+        onImageUpload(file);
+        stopCamera();
+        setShowCameraModal(false);
+      }
+    }, 'image/jpeg', 0.95);
+  };
+
+  // Cleanup camera on unmount or when modal closes
+  useEffect(() => {
+    if (!showCameraModal) {
+      stopCamera();
+    } else {
+      startCamera();
+    }
+    
+    return () => {
+      stopCamera();
+    };
+  }, [showCameraModal]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -192,13 +293,27 @@ export function PromptBox({
           />
           
           <div className="flex items-center justify-between mt-1 gap-3 relative z-10">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Image Upload Button - Always visible */}
               <div className="relative group/image-btn">
                 <button 
-                  onClick={() => !images.length && !value.trim() && fileInputRef.current?.click()}
-                  disabled={disabled || images.length > 0 || value.trim().length > 0}
-                  className="p-2 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                  title={images.length > 0 ? "Image already uploaded" : value.trim() ? "Clear text to upload image" : "Upload image"}
+                  onClick={() => {
+                    if (!disabled && !images.length && !value.trim() && fileInputRef.current) {
+                      fileInputRef.current.click();
+                    } else if (value.trim() && !images.length) {
+                      // Clear text to allow image upload
+                      onChange("");
+                    }
+                  }}
+                  disabled={disabled}
+                  className={`p-2 rounded-lg backdrop-blur-sm border transition-all transform hover:scale-105 shadow-sm ${
+                    disabled 
+                      ? 'bg-white/10 border-white/20 opacity-40 cursor-not-allowed' 
+                      : images.length > 0 || value.trim().length > 0
+                      ? 'bg-white/15 border-white/25 opacity-60 hover:opacity-80'
+                      : 'bg-white/20 border-white/30 hover:bg-white/30'
+                  }`}
+                  title={images.length > 0 ? "Image already uploaded" : value.trim() ? "Click to clear text and upload image" : "Upload image"}
                   aria-label="Upload image"
                 >
                   <ImageIcon size={18} strokeWidth={1.5} className="text-gray-700" />
@@ -210,7 +325,63 @@ export function PromptBox({
                       <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
-                      <span>You cannot use image and text at the same time</span>
+                      <span>Click to clear text and upload image</span>
+                    </div>
+                    {/* Tooltip arrow */}
+                    <div className="absolute top-full left-3 sm:left-4 -mt-1">
+                      <div className="w-2 h-2 bg-gray-900 rotate-45"></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Camera Button - Always visible */}
+              <div className="relative group/camera-btn">
+                <button 
+                  onClick={() => {
+                    if (disabled) return;
+                    
+                    if (value.trim() && !images.length) {
+                      // Clear text to allow camera capture
+                      onChange("");
+                      return;
+                    }
+                    
+                    if (!images.length && !value.trim()) {
+                      // Check if device supports native camera capture (mobile)
+                      if (typeof window !== "undefined") {
+                        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                        if (isMobile && cameraInputRef.current) {
+                          // Use native camera on mobile
+                          cameraInputRef.current.click();
+                        } else {
+                          // Use camera modal on desktop
+                          setShowCameraModal(true);
+                        }
+                      }
+                    }
+                  }}
+                  disabled={disabled}
+                  className={`p-2 rounded-lg backdrop-blur-sm border transition-all transform hover:scale-105 shadow-sm ${
+                    disabled 
+                      ? 'bg-white/10 border-white/20 opacity-40 cursor-not-allowed' 
+                      : images.length > 0 || value.trim().length > 0
+                      ? 'bg-white/15 border-white/25 opacity-60 hover:opacity-80'
+                      : 'bg-white/20 border-white/30 hover:bg-white/30'
+                  }`}
+                  title={images.length > 0 ? "Image already uploaded" : value.trim() ? "Click to clear text and capture image" : "Capture image with camera"}
+                  aria-label="Capture image with camera"
+                >
+                  <Camera size={18} strokeWidth={1.5} className="text-gray-700" />
+                </button>
+                {/* Tooltip when text is present */}
+                {value.trim() && !images.length && (
+                  <div className="absolute bottom-full left-0 mb-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-900 text-white text-[10px] sm:text-xs rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/camera-btn:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                    <div className="flex items-center gap-1 sm:gap-1.5">
+                      <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span>Click to clear text and capture image</span>
                     </div>
                     {/* Tooltip arrow */}
                     <div className="absolute top-full left-3 sm:left-4 -mt-1">
@@ -380,6 +551,80 @@ export function PromptBox({
         className="hidden"
         aria-label="Upload image file"
       />
+      
+      {/* Hidden Camera Input (for mobile devices) */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleCameraCapture}
+        className="hidden"
+        aria-label="Capture image with camera"
+      />
+
+      {/* Camera Modal */}
+      <AnimatePresence>
+        {showCameraModal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4"
+              onClick={() => setShowCameraModal(false)}
+            >
+              {/* Camera Container */}
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="relative bg-black rounded-2xl overflow-hidden max-w-2xl w-full aspect-video"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Video Preview */}
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+                
+                {/* Hidden Canvas for Capture */}
+                <canvas ref={canvasRef} className="hidden" />
+                
+                {/* Controls */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+                  <div className="flex items-center justify-center gap-4">
+                    {/* Close Button */}
+                    <button
+                      onClick={() => setShowCameraModal(false)}
+                      className="p-3 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 hover:bg-white/30 transition-all"
+                      aria-label="Close camera"
+                    >
+                      <X size={20} className="text-white" />
+                    </button>
+                    
+                    {/* Capture Button */}
+                    <button
+                      onClick={capturePhoto}
+                      className="w-16 h-16 rounded-full bg-white border-4 border-white/30 shadow-lg hover:scale-105 transition-transform"
+                      aria-label="Capture photo"
+                    >
+                      <div className="w-full h-full rounded-full bg-white" />
+                    </button>
+                    
+                    {/* Switch Camera Button (placeholder - can be implemented later) */}
+                    <div className="w-12 h-12" /> {/* Spacer for symmetry */}
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

@@ -6,6 +6,7 @@ import Hero from "../components/sections/Hero";
 import VideoBackground from "../components/sections/VideoBackground";
 import Showcase from "../components/sections/Showcase";
 import Footer from "../components/layout/Footer";
+import EarlyAccessCard from "../components/sections/EarlyAccessCard";
 
 export default async function Home() {
   const { userId } = await auth();
@@ -37,6 +38,8 @@ export default async function Home() {
                   width={128}
                   height={128}
                   className="w-full h-full object-contain"
+                  sizes="(max-width: 640px) 96px, (max-width: 768px) 112px, 128px"
+                  priority
                 />
               </div>
               <h1 
@@ -91,6 +94,9 @@ export default async function Home() {
         {/* Landing page for non-authenticated users - Hero Section */}
         <Hero />
       </SignedOut>
+      
+      {/* Early Access Card Section - Above Footer */}
+      <EarlyAccessCard />
       
       {/* Footer */}
       <Footer />

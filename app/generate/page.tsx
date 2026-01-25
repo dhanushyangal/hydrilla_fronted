@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useAuth, SignInButton, UserButton, SignedIn } from "@clerk/nextjs";
+import { useAuth, SignInButton, SignedIn } from "@clerk/nextjs";
+import PremiumUserButton from "../../components/PremiumUserButton";
+import EarlyAccessCard from "../../components/sections/EarlyAccessCard";
 import Link from "next/link";
 import { submitTextTo3D, submitImageTo3D, generatePreviewImage, registerJobWithPreview, fetchHistory, fetchStatus, fetchQueueInfo, BackendJob, Job, QueueInfo, getGlbUrl, getProxyGlbUrl, updateJobName, notifyGpuOffline } from "../../lib/api";
 import { ThreeViewer } from "../../components/ThreeViewer";
@@ -1045,35 +1047,38 @@ export default function GeneratePage() {
                   />
                 )}
               </ImageGeneration>
-              <div className="p-3 flex gap-2 bg-white rounded-b-2xl border-x border-b border-neutral-200">
-                {message.canRegenerate && (
-                  <button
-                    onClick={handleRegeneratePreview}
-                    disabled={generatingPreview}
-                    className="flex-1 px-3 py-2 text-sm bg-neutral-100 text-black rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50"
-                  >
-                    Regenerate
-                  </button>
-                )}
-                {message.canGenerate3D && (
-                  <button
-                    onClick={() => {
-                      if (message.imageUrl) {
-                        // Use the image from the chat message
-                        setPreviewImageUrl(message.imageUrl);
-                        setPreviewId(message.jobId || null);
-                        handleGenerate3D();
-                      } else {
-                        handleImageTo3D();
-                      }
-                    }}
-                    disabled={loading || generatingPreview}
-                    className="flex-1 px-3 py-2 text-sm bg-black text-white rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50"
-                  >
-                    Generate 3D
-                  </button>
-                )}
-              </div>
+              {/* Only show buttons for generated preview images, not uploaded images */}
+              {(message.canRegenerate || message.canGenerate3D) && (
+                <div className="p-3 flex gap-2 bg-white rounded-b-2xl border-x border-b border-neutral-200">
+                  {message.canRegenerate && (
+                    <button
+                      onClick={handleRegeneratePreview}
+                      disabled={generatingPreview}
+                      className="flex-1 px-3 py-2 text-sm bg-neutral-100 text-black rounded-lg hover:bg-neutral-200 transition-colors disabled:opacity-50"
+                    >
+                      Regenerate
+                    </button>
+                  )}
+                  {message.canGenerate3D && (
+                    <button
+                      onClick={() => {
+                        if (message.imageUrl) {
+                          // Use the image from the chat message
+                          setPreviewImageUrl(message.imageUrl);
+                          setPreviewId(message.jobId || null);
+                          handleGenerate3D();
+                        } else {
+                          handleImageTo3D();
+                        }
+                      }}
+                      disabled={loading || generatingPreview}
+                      className="flex-1 px-3 py-2 text-sm bg-black text-white rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                    >
+                      Generate 3D
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -1249,7 +1254,10 @@ export default function GeneratePage() {
                 />
               </div>
               
-        <div className={`flex-1 overflow-y-auto p-4 space-y-2 ${!sidebarOpen ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+        <div className={`flex-1 overflow-y-auto p-4 space-y-3 ${!sidebarOpen ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+          {/* Early Access Card - shows when user has pass */}
+          <EarlyAccessCard showWhenHasAccess={true} compact={true} />
+          
           {/* Current Generating */}
           {currentGenerating && currentGenerating.status === "generating" && (
             <div className="mb-4 bg-neutral-50 rounded-xl p-3 border border-neutral-200">
@@ -1453,7 +1461,7 @@ export default function GeneratePage() {
                 </svg>
                 <span className="hidden sm:inline">Library</span>
               </Link>
-              <UserButton
+              <PremiumUserButton
                 afterSignOutUrl="/"
                 appearance={{
                   elements: {
@@ -1475,6 +1483,9 @@ export default function GeneratePage() {
         {/* Mobile Menu */}
         <Menu isOpen={showMenu} onClose={() => setShowMenu(false)}>
           <div className="space-y-4">
+            {/* Early Access Card - shows when user has pass */}
+            <EarlyAccessCard showWhenHasAccess={true} compact={true} />
+            
             <div>
               <h3 className="text-sm font-semibold text-black mb-3">My Generations</h3>
               {/* Search Bar */}

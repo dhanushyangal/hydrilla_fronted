@@ -72,6 +72,8 @@ export default function VideoBackground({
         fill
         className="object-cover"
         priority
+        sizes="100vw"
+        quality={85}
       />
       
       {/* Overlay for better text readability */}

@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Footer() {
   return (
@@ -144,15 +145,36 @@ export default function Footer() {
               </span>
             </div>
 
-            {/* Right Side - Copyright and Social Icons */}
-            <div className="flex items-center gap-6">
-              <p 
-                className="text-sm sm:text-base text-black"
-                style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
-              >
-                2026 Hydrilla AI - All Rights Reserved
-              </p>
-              <div className="flex items-center gap-5">
+            {/* Right Side - Copyright, Legal Links, and Social Icons */}
+            <div className="flex flex-col gap-3">
+              {/* Legal Links */}
+              <div className="flex items-center gap-4 text-xs sm:text-sm text-gray-600">
+                <Link 
+                  href="/privacy-policy"
+                  className="hover:text-black transition-colors"
+                  style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                >
+                  Privacy Policy
+                </Link>
+                <span className="text-gray-400">•</span>
+                <Link 
+                  href="/terms-and-conditions"
+                  className="hover:text-black transition-colors"
+                  style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                >
+                  Terms & Conditions
+                </Link>
+              </div>
+              
+              {/* Copyright and Social Icons */}
+              <div className="flex items-center gap-6">
+                <p 
+                  className="text-sm sm:text-base text-black"
+                  style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+                >
+                  2026 Hydrilla AI - All Rights Reserved
+                </p>
+                <div className="flex items-center gap-5">
                 {/* LinkedIn */}
                 <a
                   href="https://www.linkedin.com/company/hydrilla-ai"
@@ -200,12 +222,16 @@ export default function Footer() {
                   className="text-black hover:text-gray-700 transition-colors"
                   aria-label="Reddit"
                 >
-                  <img 
-                    src="https://img.icons8.com/?size=100&id=Aj0b870PMQIm&format=png&color=000000" 
-                    alt="Reddit" 
+                  <Image
+                    src="https://img.icons8.com/?size=100&id=Aj0b870PMQIm&format=png&color=000000"
+                    alt="Reddit"
+                    width={20}
+                    height={20}
                     className="w-5 h-5"
+                    unoptimized
                   />
                 </a>
+                </div>
               </div>
             </div>
           </div>
@@ -220,6 +246,25 @@ export default function Footer() {
               >
                 Hydrilla
               </span>
+            </div>
+
+            {/* Legal Links */}
+            <div className="flex items-center gap-3 text-xs text-gray-600">
+              <Link 
+                href="/privacy-policy"
+                className="hover:text-black transition-colors"
+                style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+              >
+                Privacy Policy
+              </Link>
+              <span className="text-gray-400">•</span>
+              <Link 
+                href="/terms-and-conditions"
+                className="hover:text-black transition-colors"
+                style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
+              >
+                Terms & Conditions
+              </Link>
             </div>
 
             {/* Copyright and Social Icons */}
@@ -278,10 +323,13 @@ export default function Footer() {
                   className="text-black hover:text-gray-700 transition-colors"
                   aria-label="Reddit"
                 >
-                  <img 
-                    src="https://img.icons8.com/?size=100&id=Aj0b870PMQIm&format=png&color=000000" 
-                    alt="Reddit" 
+                  <Image
+                    src="https://img.icons8.com/?size=100&id=Aj0b870PMQIm&format=png&color=000000"
+                    alt="Reddit"
+                    width={20}
+                    height={20}
                     className="w-5 h-5"
+                    unoptimized
                   />
                 </a>
               </div>

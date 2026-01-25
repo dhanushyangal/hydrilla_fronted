@@ -19,7 +19,7 @@ const teamMembers: TeamMember[] = [
   {
     id: "1",
     name: "Tharak Nagaveti",
-    role: "Co-Founder & CEO",
+    role: "Co-Founder",
     image: "/Tharakhydrilla1.png",
     connect: "https://www.linkedin.com/in/tharak-nagaveti-8a5270187/"
     

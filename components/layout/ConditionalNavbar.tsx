@@ -11,8 +11,8 @@ export function ConditionalNavbar() {
     return null;
   }
   
-  // Use default variant for library and viewer pages (black text), hero for others
-  const variant = pathname === "/library" || pathname === "/viewer" ? "default" : "hero";
+  // Use default variant for library, viewer, privacy-policy, and terms pages (black text), hero for others
+  const variant = pathname === "/library" || pathname === "/viewer" || pathname === "/privacy-policy" || pathname === "/terms-and-conditions" ? "default" : "hero";
   
   return <Navbar variant={variant} pathname={pathname} />;
 }
