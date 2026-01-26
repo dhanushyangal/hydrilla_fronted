@@ -123,6 +123,16 @@ export interface Job {
 // Backend API types
 export type BackendJobStatus = "WAIT" | "RUN" | "FAIL" | "DONE";
 
+export interface Chat {
+  id: string;
+  userId: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  firstJobPreviewImageUrl?: string | null;
+  firstJobPrompt?: string | null;
+}
+
 export interface BackendJob {
   id: string;
   userId: string | null;
@@ -201,7 +211,8 @@ export async function registerJobWithPreview(
   previewId: string,
   previewImageUrl: string,
   prompt: string,
-  getToken?: () => Promise<string | null>
+  getToken?: () => Promise<string | null>,
+  chatId?: string | null
 ): Promise<void> {
   try {
     const headers: HeadersInit = { "Content-Type": "application/json" };
@@ -212,14 +223,19 @@ export async function registerJobWithPreview(
       }
     }
 
+    const body: any = { 
+      job_id: previewId, 
+      prompt,
+      previewImageUrl 
+    };
+    if (chatId) {
+      body.chatId = chatId;
+    }
+
     await fetch(`${backendBase}/api/3d/register-job`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ 
-        job_id: previewId, 
-        prompt,
-        previewImageUrl 
-      }),
+      body: JSON.stringify(body),
     }).catch(() => {});
   } catch {}
 }
@@ -281,7 +297,7 @@ export async function generatePreviewImage(prompt: string, getToken?: () => Prom
 /**
  * Submit text-to-3D job
  */
-export async function submitTextTo3D(prompt: string, getToken?: () => Promise<string | null>): Promise<{ job_id: string }> {
+export async function submitTextTo3D(prompt: string, getToken?: () => Promise<string | null>, chatId?: string | null): Promise<{ job_id: string }> {
   const formData = new FormData();
   formData.append("prompt", prompt);
 
@@ -314,10 +330,15 @@ export async function submitTextTo3D(prompt: string, getToken?: () => Promise<st
       }
     }
 
+    const registerBody: any = { job_id: result.job_id, prompt };
+    if (chatId) {
+      registerBody.chatId = chatId;
+    }
+
     await fetch(`${backendBase}/api/3d/register-job`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ job_id: result.job_id, prompt }),
+      body: JSON.stringify(registerBody),
     }).catch(() => {});
   } catch {}
 
@@ -376,7 +397,9 @@ export async function uploadImage(file: File, getToken?: () => Promise<string | 
 export async function submitImageTo3D(
   imageUrl: string | null,
   imageFile: File | null = null,
-  getToken?: () => Promise<string | null>
+  getToken?: () => Promise<string | null>,
+  previewJobId?: string | null,
+  chatId?: string | null
 ): Promise<{ job_id: string }> {
   const formData = new FormData();
 
@@ -417,10 +440,18 @@ export async function submitImageTo3D(
       }
     }
 
+    const registerBody: any = { job_id: result.job_id, imageUrl: imageUrl || "uploaded_file" };
+    if (previewJobId) {
+      registerBody.previewJobId = previewJobId;
+    }
+    if (chatId) {
+      registerBody.chatId = chatId;
+    }
+
     await fetch(`${backendBase}/api/3d/register-job`, {
       method: "POST",
       headers,
-      body: JSON.stringify({ job_id: result.job_id, imageUrl: imageUrl || "uploaded_file" }),
+      body: JSON.stringify(registerBody),
     }).catch(() => {});
   } catch {}
 
@@ -599,6 +630,225 @@ export function getPreviewImageUrl(job: Job): string | null {
 /**
  * Fetch job history from backend (requires auth for user-specific jobs)
  */
+/**
+ * Fetch all chats for the current user
+ */
+export async function fetchChats(getToken?: () => Promise<string | null>): Promise<Chat[]> {
+  try {
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (getToken) {
+      const token = await getToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    }
+
+    const response = await fetch(`${backendBase}/api/3d/chats?t=${Date.now()}`, {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      // If table doesn't exist yet, return empty array instead of throwing
+      if (response.status === 500) {
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.error?.includes("relation") || errorData.error?.includes("does not exist")) {
+          console.warn("Chats table not found, returning empty array. Please run the migration.");
+          return [];
+        }
+      }
+      throw new Error(`Failed to fetch chats: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.chats || [];
+  } catch (err: any) {
+    console.error("Failed to fetch chats:", err);
+    // Return empty array on error to prevent app crash
+    return [];
+  }
+}
+
+/**
+ * Fetch a specific chat with its jobs
+ */
+export async function fetchChat(chatId: string, getToken?: () => Promise<string | null>): Promise<{ chat: Chat; jobs: BackendJob[] }> {
+  try {
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (getToken) {
+      const token = await getToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    }
+
+    const response = await fetch(`${backendBase}/api/3d/chats/${chatId}`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch chat: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return { chat: data.chat, jobs: data.jobs || [] };
+  } catch (err: any) {
+    console.error("Failed to fetch chat:", err);
+    throw err;
+  }
+}
+
+/**
+ * Create a new chat
+ */
+export async function createChat(name?: string, getToken?: () => Promise<string | null>): Promise<Chat> {
+  try {
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (getToken) {
+      const token = await getToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    }
+
+    const response = await fetch(`${backendBase}/api/3d/chats`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ name: name || "New Chat" }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create chat: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.chat;
+  } catch (err: any) {
+    console.error("Failed to create chat:", err);
+    throw err;
+  }
+}
+
+/**
+ * Get or create active chat (most recent chat, or create new one)
+ */
+export async function getOrCreateActiveChat(getToken?: () => Promise<string | null>): Promise<Chat | null> {
+  try {
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (getToken) {
+      try {
+        const token = await getToken();
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+      } catch (tokenErr) {
+        console.warn("Failed to get token for active chat:", tokenErr);
+        // Continue without token - backend will handle auth
+      }
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(`${backendBase}/api/3d/chats/active`, {
+        method: "GET",
+        headers,
+      });
+    } catch (fetchErr: any) {
+      console.warn("Failed to fetch active chat:", fetchErr);
+      return null;
+    }
+
+    if (!response.ok) {
+      // For any error status, try to get error details but always return null
+      if (response.status === 500 || response.status >= 500) {
+        try {
+          const errorData = await response.json().catch(() => ({}));
+          if (errorData.error?.includes("relation") || errorData.error?.includes("does not exist")) {
+            console.warn("Chats table not found. Please run the migration.");
+          } else {
+            console.warn("Server error getting active chat:", errorData.error || response.statusText);
+          }
+        } catch {
+          // If we can't parse the error, still return null gracefully
+          console.warn("Failed to get active chat (server error). Please run the migration.");
+        }
+      } else {
+        console.warn(`Failed to get active chat: ${response.status} ${response.statusText}`);
+      }
+      return null;
+    }
+
+    try {
+      const data = await response.json();
+      return data.chat || null;
+    } catch (parseErr) {
+      console.warn("Failed to parse active chat response:", parseErr);
+      return null;
+    }
+  } catch (err: any) {
+    // Catch any unexpected errors and return null instead of throwing
+    console.warn("Unexpected error getting active chat:", err?.message || err);
+    return null;
+  }
+}
+
+/**
+ * Update chat name
+ */
+export async function updateChatName(chatId: string, name: string, getToken?: () => Promise<string | null>): Promise<void> {
+  try {
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (getToken) {
+      const token = await getToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    }
+
+    const response = await fetch(`${backendBase}/api/3d/chats/${chatId}/name`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ name }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update chat name: ${response.statusText}`);
+    }
+  } catch (err: any) {
+    console.error("Failed to update chat name:", err);
+    throw err;
+  }
+}
+
+/**
+ * Delete a chat
+ */
+export async function deleteChat(chatId: string, getToken?: () => Promise<string | null>): Promise<void> {
+  try {
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (getToken) {
+      const token = await getToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    }
+
+    const response = await fetch(`${backendBase}/api/3d/chats/${chatId}`, {
+      method: "DELETE",
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete chat: ${response.statusText}`);
+    }
+  } catch (err: any) {
+    console.error("Failed to delete chat:", err);
+    throw err;
+  }
+}
+
 export async function fetchHistory(getToken?: () => Promise<string | null>): Promise<BackendJob[]> {
   const headers: HeadersInit = {
     "Content-Type": "application/json",

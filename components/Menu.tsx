@@ -34,14 +34,7 @@ export function Menu({ isOpen, onClose, children }: MenuProps) {
             className="fixed left-0 top-0 bottom-0 w-[280px] bg-white border-r border-neutral-200 shadow-2xl z-50 lg:hidden overflow-y-auto"
           >
             {/* Header */}
-            <div className="p-4 border-b border-neutral-100 flex items-center justify-between sticky top-0 bg-white z-10">
-              <Link href="/" onClick={onClose}>
-                <span 
-                  className="text-xl font-bold text-black tracking-tight font-dm-sans"
-                >
-                  Hydrilla
-                </span>
-              </Link>
+            <div className="p-4 border-b border-neutral-100 flex items-center justify-end sticky top-0 bg-white z-10">
               <button
                 onClick={onClose}
                 aria-label="Close menu"

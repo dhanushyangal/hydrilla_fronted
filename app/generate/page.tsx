@@ -5,7 +5,7 @@ import { useAuth, SignInButton, SignedIn } from "@clerk/nextjs";
 import PremiumUserButton from "../../components/PremiumUserButton";
 import EarlyAccessCard from "../../components/sections/EarlyAccessCard";
 import Link from "next/link";
-import { submitTextTo3D, submitImageTo3D, generatePreviewImage, registerJobWithPreview, fetchHistory, fetchStatus, fetchQueueInfo, BackendJob, Job, QueueInfo, getGlbUrl, getProxyGlbUrl, updateJobName, notifyGpuOffline } from "../../lib/api";
+import { submitTextTo3D, submitImageTo3D, generatePreviewImage, registerJobWithPreview, fetchHistory, fetchStatus, fetchQueueInfo, BackendJob, Job, QueueInfo, getGlbUrl, getProxyGlbUrl, updateJobName, notifyGpuOffline, fetchChats, fetchChat, createChat, getOrCreateActiveChat, Chat, deleteChat, updateChatName } from "../../lib/api";
 import { ThreeViewer } from "../../components/ThreeViewer";
 import { PromptBox } from "../../components/PromptBox";
 import { Menu } from "../../components/Menu";
@@ -100,24 +100,7 @@ export default function GeneratePage() {
   const [error, setError] = useState<string | null>(null);
   const [modelGenerationProgress, setModelGenerationProgress] = useState(0);
   
-  // Scroll to bottom when new messages arrive or progress updates
-  useEffect(() => {
-    if (chatEndRef.current) {
-      // Use setTimeout to ensure DOM is updated
-      setTimeout(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    }
-  }, [chatMessages]);
-  
-  // Also scroll on progress updates
-  useEffect(() => {
-    if (chatEndRef.current && (generatingPreview || loading)) {
-      setTimeout(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    }
-  }, [previewProgress, modelGenerationProgress, generatingPreview, loading]);
+  // Auto-scroll removed - chat is now manually scrollable
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Refs for progress intervals
@@ -136,7 +119,16 @@ export default function GeneratePage() {
     };
   }, []);
 
-  // History states
+  // Chat states
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [chatsLoading, setChatsLoading] = useState(true);
+  const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [editingChatName, setEditingChatName] = useState("");
+  const [libraryImages, setLibraryImages] = useState<BackendJob[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  
+  // History states (for backward compatibility - jobs in current chat)
   const [history, setHistory] = useState<BackendJob[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [currentGenerating, setCurrentGenerating] = useState<GeneratingModel | null>(null);
@@ -163,80 +155,70 @@ export default function GeneratePage() {
 
   const userIsSignedIn = isLoaded ? isSignedIn : (isMounted ? cachedAuthState : null);
 
-  // Fetch history on mount and restore generating jobs
+  // Fetch chats on mount
   useEffect(() => {
-    const loadHistory = async () => {
+    const loadChats = async () => {
       if (!userIsSignedIn) return;
-      setHistoryLoading(true);
+      setChatsLoading(true);
       try {
         const tokenGetter = async () => await getToken();
-        const jobs = await fetchHistory(tokenGetter);
-        setHistory(jobs);
+        const loadedChats = await fetchChats(tokenGetter);
+        console.log("Loaded chats with preview data:", loadedChats.map(c => ({
+          id: c.id,
+          name: c.name,
+          hasPreviewImage: !!c.firstJobPreviewImageUrl,
+          previewImageUrl: c.firstJobPreviewImageUrl,
+          hasPrompt: !!c.firstJobPrompt,
+          prompt: c.firstJobPrompt
+        })));
+        setChats(loadedChats);
         
-        // Check if there's a generating job that should be restored
-        const generatingJob = jobs.find(job => job.status === "WAIT" || job.status === "RUN");
-        if (generatingJob) {
-          // Only restore if we don't already have this job as currentGenerating
-          const shouldRestore = !currentGenerating || currentGenerating.jobId !== generatingJob.id;
-          if (shouldRestore) {
-          // Restore generating state with correct start time
-          const createdAt = generatingJob.createdAt ? new Date(generatingJob.createdAt).getTime() : Date.now();
-          
-          // Fetch current status to get queue info
-          try {
-            const status = await fetchStatus(generatingJob.id);
-            const estimatedTotalSeconds = status.queue?.estimated_total_seconds || 130;
-            
-            // Calculate initial progress based on elapsed time
-            let initialProgress = 0;
-            if (status.created_at) {
-              const now = Date.now();
-              const elapsed = now - status.created_at;
-              const elapsedSeconds = elapsed / 1000;
-              
-              if (status.queue) {
-                if (status.queue.position > 0) {
-                  const waitProgress = Math.min(45, (elapsedSeconds / status.queue.estimated_wait_seconds) * 45);
-                  initialProgress = waitProgress;
-                } else {
-                  const processingElapsed = Math.max(0, elapsedSeconds - (status.queue.estimated_wait_seconds || 0));
-                  const processingProgress = 50 + (processingElapsed / (estimatedTotalSeconds - (status.queue.estimated_wait_seconds || 0))) * 45;
-                  initialProgress = Math.min(95, processingProgress);
-                }
-              } else {
-                initialProgress = Math.min(95, (elapsedSeconds / estimatedTotalSeconds) * 100);
-              }
-            }
-            
-            setModelGenerationProgress(Math.max(0, Math.min(95, initialProgress)));
-            
-            setCurrentGenerating({
-              jobId: generatingJob.id,
-              prompt: generatingJob.prompt || undefined,
-              imageUrl: generatingJob.previewImageUrl || undefined,
-              status: "generating",
-              progress: initialProgress,
-              queueInfo: status.queue,
-              estimatedTotalSeconds: estimatedTotalSeconds,
-              startTime: status.created_at || createdAt,
-            });
-          } catch (err) {
-            console.error("Failed to fetch status for restoring job:", err);
-          }
-          }
-        }
+        // Don't auto-select a chat - let user create one by entering a prompt
+        setCurrentChatId(null);
+        setHistory([]);
+        setChatMessages([]);
+        setHistoryLoading(false);
+        
+        // No need to check for generating jobs since no chat is selected by default
+        // Users will create a new chat when they enter a prompt
       } catch (err: any) {
-        // Log error but don't show to user - history loading failure is non-critical
-        console.warn("Failed to load history:", err.message || err);
-        // Set empty history so app continues to work
+        // Log error but don't show to user - chat loading failure is non-critical
+        console.warn("Failed to load chats:", err.message || err);
+        // Set empty chats so app continues to work
+        setChats([]);
         setHistory([]);
       } finally {
+        setChatsLoading(false);
         setHistoryLoading(false);
       }
     };
-    loadHistory();
+    loadChats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userIsSignedIn, getToken]);
+  }, [userIsSignedIn]);
+
+  // Fetch library images (recent jobs with images)
+  useEffect(() => {
+    const loadLibraryImages = async () => {
+      if (!userIsSignedIn) return;
+      setLibraryLoading(true);
+      try {
+        const tokenGetter = async () => await getToken();
+        const jobs = await fetchHistory(tokenGetter);
+        // Get jobs with preview images, limit to 6 most recent
+        const jobsWithImages = jobs
+          .filter(job => job.previewImageUrl || job.imageUrl)
+          .slice(0, 6);
+        setLibraryImages(jobsWithImages);
+      } catch (err: any) {
+        console.warn("Failed to load library images:", err.message || err);
+        setLibraryImages([]);
+      } finally {
+        setLibraryLoading(false);
+      }
+    };
+    loadLibraryImages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userIsSignedIn]);
 
   // Poll for current generating job
   useEffect(() => {
@@ -332,8 +314,10 @@ export default function GeneratePage() {
           }
           
           const tokenGetter = async () => await getToken();
-          const jobs = await fetchHistory(tokenGetter);
-          setHistory(jobs);
+          if (currentChatId) {
+            const chatData = await fetchChat(currentChatId, tokenGetter);
+            setHistory(chatData.jobs);
+          }
         } else if (status.status === "failed") {
           if (modelProgressIntervalRef.current) {
             clearInterval(modelProgressIntervalRef.current);
@@ -446,21 +430,91 @@ export default function GeneratePage() {
     }
 
     if (mode === "text" && prompt.trim()) {
+      const promptText = prompt.trim();
+      
+      // If no chat is selected, create a new one
+      let chatIdToUse = currentChatId;
+      if (!chatIdToUse) {
+        try {
+          const tokenGetter = async () => await getToken();
+          const newChat = await createChat("New Chat", tokenGetter);
+          setChats((prev) => [newChat, ...prev]);
+          setCurrentChatId(newChat.id);
+          chatIdToUse = newChat.id; // Use the new chat ID directly
+          setHistory([]);
+          setChatMessages([]);
+        } catch (err: any) {
+          console.error("Failed to create chat:", err);
+          addChatMessage({
+            type: "error",
+            content: err.message || "Failed to create chat",
+          });
+          return;
+        }
+      }
+      
+      // Update chat name immediately with the prompt
+      if (chatIdToUse) {
+        try {
+          const tokenGetter = async () => await getToken();
+          await updateChatName(chatIdToUse, promptText, tokenGetter);
+          // Update chats list immediately to show new name
+          setChats((prev) => prev.map((chat) => 
+            chat.id === chatIdToUse 
+              ? { ...chat, name: promptText, firstJobPrompt: promptText }
+              : chat
+          ));
+        } catch (err) {
+          console.error("Failed to update chat name:", err);
+          // Continue anyway - non-critical
+        }
+      }
+      
       // Add user message to chat
       addChatMessage({
         type: "user",
-        content: prompt,
+        content: promptText,
       });
       
       // Clear prompt text immediately
       setPrompt("");
       
-      // Auto-generate preview
-      await handleGeneratePreview();
+      // Auto-generate preview with the chat ID
+      await handleGeneratePreview(chatIdToUse);
     } else if (mode === "image" && imagePreview) {
+      // If no chat is selected, create a new one
+      let chatIdToUse = currentChatId;
+      if (!chatIdToUse) {
+        try {
+          const tokenGetter = async () => await getToken();
+          const newChat = await createChat("New Chat", tokenGetter);
+          setChats((prev) => [newChat, ...prev]);
+          setCurrentChatId(newChat.id);
+          chatIdToUse = newChat.id; // Use the new chat ID directly
+          setHistory([]);
+          setChatMessages([]);
+        } catch (err: any) {
+          console.error("Failed to create chat:", err);
+          addChatMessage({
+            type: "error",
+            content: err.message || "Failed to create chat",
+          });
+          return;
+        }
+      }
+      
       // Store image preview and file before clearing
       const previewToAdd = imagePreview;
       const fileToUse = uploadedFile;
+      
+      // Update chat preview image immediately
+      if (chatIdToUse && previewToAdd) {
+        setChats((prev) => prev.map((chat) => 
+          chat.id === chatIdToUse 
+            ? { ...chat, firstJobPreviewImageUrl: previewToAdd }
+            : chat
+        ));
+      }
       
       // Clear image from PromptBox immediately so it disappears
       setUploadedFile(null);
@@ -478,13 +532,13 @@ export default function GeneratePage() {
         canGenerate3D: false, // Don't show generate button since we're auto-generating
       });
       
-      // Proceed directly to 3D generation (use stored file and preview)
-      await handleImageTo3D(previewToAdd, fileToUse);
+      // Proceed directly to 3D generation (use stored file and preview) with the chat ID
+      await handleImageTo3D(previewToAdd, fileToUse, chatIdToUse);
     }
   };
   
   // Handle image to 3D generation with optional stored preview
-  const handleImageTo3D = async (storedPreview?: string, storedFile?: File | null) => {
+  const handleImageTo3D = async (storedPreview?: string, storedFile?: File | null, overrideChatId?: string | null) => {
     const fileToUse = storedFile !== undefined ? storedFile : uploadedFile;
     const previewToUse = storedPreview || imagePreview;
     
@@ -560,15 +614,18 @@ export default function GeneratePage() {
       let result;
       const tokenGetter = async () => await getToken();
 
+      // Use overrideChatId if provided, otherwise currentChatId
+      const chatIdForJob = overrideChatId !== undefined ? overrideChatId : currentChatId;
+      
       if (fileToUse) {
         setUploading(true);
         try {
-          result = await submitImageTo3D(null, fileToUse, tokenGetter);
+          result = await submitImageTo3D(null, fileToUse, tokenGetter, null, chatIdForJob);
         } finally {
           setUploading(false);
         }
       } else if (imageUrl.trim()) {
-        result = await submitImageTo3D(imageUrl.trim(), null, tokenGetter);
+        result = await submitImageTo3D(imageUrl.trim(), null, tokenGetter, null, chatIdForJob);
       } else {
         // Remove status message and show error
         setChatMessages((prev) => prev.filter((msg) => msg.id !== statusId));
@@ -614,7 +671,7 @@ export default function GeneratePage() {
   };
 
   // Generate preview image for text-to-3D
-  const handleGeneratePreview = async () => {
+  const handleGeneratePreview = async (overrideChatId?: string | null) => {
     if (!prompt.trim()) {
       addChatMessage({
         type: "error",
@@ -709,20 +766,35 @@ export default function GeneratePage() {
       setPreviewId(result.preview_id);
       setPreviewProgress(100);
       
-      // Register job with preview image
+      // Register job with preview image - use overrideChatId if provided, otherwise currentChatId
+      const chatIdForJob = overrideChatId !== undefined ? overrideChatId : currentChatId;
       try {
         await registerJobWithPreview(
           result.preview_id,
           result.image_url,
           prompt.trim(),
-          tokenGetter
+          tokenGetter,
+          chatIdForJob
         );
         
-        // Refresh history to show the new job in the library
-        const jobs = await fetchHistory(tokenGetter);
-        setHistory(jobs);
+        // Refresh current chat to show the new job - use overrideChatId if provided
+        const chatIdToRefresh = overrideChatId !== undefined ? overrideChatId : currentChatId;
+        if (chatIdToRefresh) {
+          const chatData = await fetchChat(chatIdToRefresh, tokenGetter);
+          setHistory(chatData.jobs);
+        }
       } catch (err) {
         console.error("Failed to register preview job:", err);
+      }
+      
+      // Update chat preview image immediately
+      const chatIdForPreview = overrideChatId !== undefined ? overrideChatId : currentChatId;
+      if (chatIdForPreview && result.image_url) {
+        setChats((prev) => prev.map((chat) => 
+          chat.id === chatIdForPreview 
+            ? { ...chat, firstJobPreviewImageUrl: result.image_url }
+            : chat
+        ));
       }
       
       // Remove status message and add preview message with job ID
@@ -758,7 +830,7 @@ export default function GeneratePage() {
   };
 
   // Generate 3D model from preview image
-  const handleGenerate3D = async () => {
+  const handleGenerate3D = async (overridePreviewJobId?: string | null) => {
     if (!previewImageUrl) {
       addChatMessage({
         type: "error",
@@ -832,7 +904,10 @@ export default function GeneratePage() {
 
     try {
       const tokenGetter = async () => await getToken();
-      const result = await submitImageTo3D(previewImageUrl, null, tokenGetter);
+      // Use overridePreviewJobId if provided, otherwise use state previewId
+      const previewJobIdToUse = overridePreviewJobId !== undefined ? overridePreviewJobId : (previewId || null);
+      // Note: handleGenerate3D is called from existing chats, so we use currentChatId here
+      const result = await submitImageTo3D(previewImageUrl, null, tokenGetter, previewJobIdToUse, currentChatId);
       
       setCurrentGenerating({
         jobId: result.job_id,
@@ -863,10 +938,139 @@ export default function GeneratePage() {
     }
   };
 
-  // View a model from history
+  // View a chat (load all jobs in that chat)
+  const viewChat = async (chat: Chat) => {
+    setCurrentChatId(chat.id);
+    setHistoryLoading(true);
+    try {
+      const tokenGetter = async () => await getToken();
+      const chatData = await fetchChat(chat.id, tokenGetter);
+      setHistory(chatData.jobs);
+      
+      // Clear chat messages and load all jobs from this chat
+      setChatMessages([]);
+      chatData.jobs.forEach((job) => {
+        // Then add the job result message
+        if (job.resultGlbUrl) {
+          // For 3D objects, don't show the prompt - just show the 3D model
+          addChatMessage({
+            type: "3d",
+            glbUrl: getProxyGlbUrl(job.id),
+            status: "completed",
+            jobId: job.id,
+          });
+        } else if (job.previewImageUrl) {
+          // For preview images, show the prompt first, then the image
+          if (job.prompt) {
+            addChatMessage({
+              type: "user",
+              content: job.prompt,
+              jobId: job.id,
+            });
+          }
+          addChatMessage({
+            type: "preview",
+            imageUrl: job.previewImageUrl,
+            canRegenerate: false,
+            canGenerate3D: !job.resultGlbUrl,
+            status: "completed",
+            jobId: job.id,
+          });
+        } else {
+          // For status messages, show the prompt
+          if (job.prompt) {
+            addChatMessage({
+              type: "user",
+              content: job.prompt,
+              jobId: job.id,
+            });
+          }
+          addChatMessage({
+            type: "status",
+            content: job.prompt || "Job in progress...",
+            status: job.status === "DONE" ? "completed" : "generating",
+            jobId: job.id,
+          });
+        }
+      });
+    } catch (err: any) {
+      console.error("Failed to load chat:", err);
+      setError(err.message || "Failed to load chat");
+    } finally {
+      setHistoryLoading(false);
+    }
+    setShowMenu(false);
+  };
+
+  // Create a new chat
+  const handleNewChat = async () => {
+    try {
+      const tokenGetter = async () => await getToken();
+      const newChat = await createChat("New Chat", tokenGetter);
+      setChats((prev) => [newChat, ...prev]);
+      setCurrentChatId(newChat.id);
+      setHistory([]);
+      setChatMessages([]);
+    } catch (err: any) {
+      console.error("Failed to create chat:", err);
+      setError(err.message || "Failed to create chat");
+    }
+  };
+
+  // Handle chat rename
+  const handleRenameChat = async (chatId: string, newName: string) => {
+    if (!newName.trim()) return;
+    try {
+      const tokenGetter = async () => await getToken();
+      await updateChatName(chatId, newName.trim(), tokenGetter);
+      setChats((prev) => prev.map(chat => 
+        chat.id === chatId ? { ...chat, name: newName.trim() } : chat
+      ));
+      setEditingChatId(null);
+      setEditingChatName("");
+    } catch (err: any) {
+      console.error("Failed to rename chat:", err);
+      setError(err.message || "Failed to rename chat");
+    }
+  };
+
+  // Handle chat delete
+  const handleDeleteChat = async (chatId: string) => {
+    if (!confirm("Are you sure you want to delete this chat?")) return;
+    try {
+      const tokenGetter = async () => await getToken();
+      await deleteChat(chatId, tokenGetter);
+      setChats((prev) => prev.filter(chat => chat.id !== chatId));
+      if (currentChatId === chatId) {
+        setCurrentChatId(null);
+        setHistory([]);
+        setChatMessages([]);
+      }
+    } catch (err: any) {
+      console.error("Failed to delete chat:", err);
+      setError(err.message || "Failed to delete chat");
+    }
+  };
+
+  // Start editing chat name
+  const startEditingChat = (chat: Chat) => {
+    setEditingChatId(chat.id);
+    setEditingChatName(chat.firstJobPrompt || chat.name);
+  };
+
+  // View a model from history (for backward compatibility)
   const viewHistoryModel = (job: BackendJob) => {
-    // Always show preview image if it exists (even if no 3D model yet)
-    if (job.previewImageUrl) {
+    // If 3D model exists, only show that (don't show preview image separately)
+    if (job.resultGlbUrl) {
+      addChatMessage({
+        type: "3d",
+        glbUrl: getProxyGlbUrl(job.id), // Use proxy URL to avoid CORS issues
+        status: "completed",
+        jobId: job.id,
+      });
+    } 
+    // Otherwise, show preview image if it exists
+    else if (job.previewImageUrl) {
       addChatMessage({
         type: "preview",
         imageUrl: job.previewImageUrl,
@@ -876,19 +1080,8 @@ export default function GeneratePage() {
         jobId: job.id,
       });
     }
-    
-    // Then add 3D model if it exists
-    if (job.resultGlbUrl) {
-      addChatMessage({
-        type: "3d",
-        glbUrl: getProxyGlbUrl(job.id), // Use proxy URL to avoid CORS issues
-        status: "completed",
-        jobId: job.id,
-      });
-    }
-    
     // If job has neither preview nor 3D, still show it (might be in progress)
-    if (!job.previewImageUrl && !job.resultGlbUrl) {
+    else {
       addChatMessage({
         type: "status",
         content: job.prompt || "Job in progress...",
@@ -934,13 +1127,13 @@ export default function GeneratePage() {
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>("");
 
-  // Filter history based on search
-  const filteredHistory = history.filter((job) => {
+  // Filter chats based on search
+  const filteredChats = chats.filter((chat: Chat) => {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
-    const nameMatch = (job.name || "").toLowerCase().includes(query);
-    const promptMatch = (job.prompt || "").toLowerCase().includes(query);
-    return nameMatch || promptMatch;
+    const chatName = chat.name?.toLowerCase() || '';
+    const chatPrompt = chat.firstJobPrompt?.toLowerCase() || '';
+    return chatName.includes(query) || chatPrompt.includes(query);
   });
 
   // Handle name editing
@@ -1066,7 +1259,8 @@ export default function GeneratePage() {
                           // Use the image from the chat message
                           setPreviewImageUrl(message.imageUrl);
                           setPreviewId(message.jobId || null);
-                          handleGenerate3D();
+                          // Pass jobId directly to avoid async state update issue
+                          handleGenerate3D(message.jobId || null);
                         } else {
                           handleImageTo3D();
                         }
@@ -1115,7 +1309,28 @@ export default function GeneratePage() {
           </div>
         );
       
-      case "status":
+      case "status": {
+        const handleStatusClick = async () => {
+          // Create a new chat and continue with this prompt
+          try {
+            const tokenGetter = async () => await getToken();
+            const newChat = await createChat("New Chat", tokenGetter);
+            setChats((prev) => [newChat, ...prev]);
+            setCurrentChatId(newChat.id);
+            setHistory([]);
+            setChatMessages([]);
+            
+            // Set the prompt from the message content
+            if (message.content && message.content !== "Job in progress..." && message.content !== "Generating preview image...") {
+              setPrompt(message.content);
+              setMode("text");
+            }
+          } catch (err: any) {
+            console.error("Failed to create new chat:", err);
+            setError(err.message || "Failed to create new chat");
+          }
+        };
+        
         const formatTime = (seconds: number) => {
           if (seconds < 60) {
             return `~${Math.ceil(seconds)}s`;
@@ -1160,9 +1375,20 @@ export default function GeneratePage() {
           );
         }
         
+        // Only make clickable if it's a prompt (not "Job in progress..." or "Generating preview image...")
+        const isClickable = message.content && 
+          message.content !== "Job in progress..." && 
+          message.content !== "Generating preview image...";
+        
         return (
           <div key={message.id} className="flex justify-start mb-4">
-            <div className="max-w-[80%] bg-white rounded-2xl rounded-tl-sm border border-neutral-200 p-4 shadow-sm">
+            <div 
+              className={`max-w-[80%] bg-white rounded-2xl rounded-tl-sm border border-neutral-200 p-4 shadow-sm ${
+                isClickable ? 'cursor-pointer hover:bg-neutral-50 transition-colors' : ''
+              }`}
+              onClick={isClickable ? handleStatusClick : undefined}
+              title={isClickable ? "Click to create a new chat and continue with this prompt" : undefined}
+            >
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-5 h-5 spinner"></div>
                 <div className="flex-1">
@@ -1194,6 +1420,7 @@ export default function GeneratePage() {
             </div>
           </div>
         );
+      }
       
       case "error":
         // Parse error message
@@ -1230,33 +1457,66 @@ export default function GeneratePage() {
 
   return (
     <div className="h-screen bg-neutral-50 flex overflow-hidden">
-      {/* Left Panel - Library/History (Desktop Only) */}
-      <div className={`hidden lg:flex lg:flex-col bg-white border-r border-neutral-100 flex-shrink-0 transition-all duration-300 ease-in-out ${
-        sidebarOpen ? 'w-[280px]' : 'w-0 overflow-hidden'
-      }`}>
-        <div className={`p-4 border-b border-neutral-100 ${!sidebarOpen ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
-          {/* Hydrilla Logo in Sidebar */}
-          <Link href="/" className="flex items-center mb-4">
+      {/* Mobile Menu */}
+      <Menu isOpen={showMenu} onClose={() => setShowMenu(false)}>
+        <div className="space-y-4">
+          {/* Logo */}
+          <Link href="/" className="flex items-center mb-2" onClick={() => setShowMenu(false)}>
             <span 
-              className="text-2xl font-bold text-black tracking-tight font-dm-sans"
+              className="text-xl font-bold text-black tracking-tight font-dm-sans"
             >
               Hydrilla
             </span>
           </Link>
-          <h2 className="text-lg font-semibold text-black mb-3">My Generations</h2>
-          {/* Search Bar */}
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm text-black placeholder:text-neutral-400 focus:border-black focus:ring-1 focus:ring-black/10 transition-all"
-                />
-              </div>
-              
-        <div className={`flex-1 overflow-y-auto p-4 space-y-3 ${!sidebarOpen ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+          
           {/* Early Access Card - shows when user has pass */}
           <EarlyAccessCard showWhenHasAccess={true} compact={true} />
+          
+          {/* My Library Section */}
+          <div className="mb-4">
+            <Link 
+              href="/library"
+              className="flex items-center justify-between mb-3 group"
+              onClick={() => setShowMenu(false)}
+            >
+              <h3 className="text-sm font-semibold text-black">My Library</h3>
+              <svg className="w-4 h-4 text-neutral-400 group-hover:text-black transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+            {libraryLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="w-4 h-4 spinner"></div>
+              </div>
+            ) : libraryImages.length > 0 ? (
+              <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2 -mx-2 px-2">
+                {libraryImages.map((job: BackendJob) => (
+                  <Link
+                    key={job.id}
+                    href={`/viewer?jobId=${job.id}`}
+                    onClick={() => setShowMenu(false)}
+                    className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-neutral-200 hover:border-black transition-colors"
+                  >
+                    {job.previewImageUrl || job.imageUrl ? (
+                      <img 
+                        src={job.previewImageUrl || job.imageUrl || ''} 
+                        alt="Library image"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-neutral-100 flex items-center justify-center">
+                        <svg className="w-6 h-6 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-neutral-400 text-center py-4">No images yet</p>
+            )}
+          </div>
           
           {/* Current Generating */}
           {currentGenerating && currentGenerating.status === "generating" && (
@@ -1282,114 +1542,368 @@ export default function GeneratePage() {
             </div>
           )}
 
-          {/* History */}
-          {historyLoading ? (
+          {/* Chats Section */}
+          <div className="mt-4">
+            <h3 className="text-sm font-semibold text-black mb-3">Chats</h3>
+            <button
+              onClick={() => {
+                handleNewChat();
+                setShowMenu(false);
+              }}
+              className="w-full mb-4 px-3 py-2 text-sm bg-black text-white rounded-lg hover:bg-neutral-800 transition-colors"
+            >
+              + New Chat
+            </button>
+            {/* Search Bar */}
+            <input
+              type="text"
+              placeholder="Search chats..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm text-black placeholder:text-neutral-400 focus:border-black focus:ring-1 focus:ring-black/10 transition-all"
+            />
+          </div>
+
+          {/* Chats */}
+          {chatsLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="w-5 h-5 spinner"></div>
             </div>
-          ) : filteredHistory.length === 0 ? (
+          ) : filteredChats.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-neutral-400 text-sm">
-                {searchQuery ? "No results found" : "No generations yet"}
+                {searchQuery ? "No results found" : "No chats yet"}
               </p>
             </div>
           ) : (
-            filteredHistory.map((job) => (
-              <div
-                key={job.id}
-                onClick={() => viewHistoryModel(job)}
-                className={`bg-neutral-50 rounded-xl border border-neutral-100 overflow-hidden hover:border-neutral-300 transition-all cursor-pointer ${job.resultGlbUrl ? '' : ''}`}
+            <div className="space-y-2">
+              {filteredChats.slice(0, 10).map((chat: Chat) => (
+                <div
+                  key={chat.id}
+                  className="bg-neutral-50 rounded-xl p-3 border border-neutral-100 hover:border-neutral-300 transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                      onClick={() => {
+                        viewChat(chat);
+                        setShowMenu(false);
+                      }}
+                    >
+                      <div className="flex-shrink-0">
+                        {chat.firstJobPreviewImageUrl ? (
+                          <img 
+                            src={chat.firstJobPreviewImageUrl} 
+                            alt="Chat preview"
+                            className="w-14 h-14 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg bg-neutral-200 flex items-center justify-center">
+                            <svg className="w-6 h-6 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {editingChatId === chat.id ? (
+                          <input
+                            type="text"
+                            value={editingChatName}
+                            onChange={(e) => setEditingChatName(e.target.value)}
+                            onBlur={() => {
+                              if (editingChatName.trim()) {
+                                handleRenameChat(chat.id, editingChatName);
+                              } else {
+                                setEditingChatId(null);
+                                setEditingChatName("");
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                if (editingChatName.trim()) {
+                                  handleRenameChat(chat.id, editingChatName);
+                                }
+                              } else if (e.key === 'Escape') {
+                                setEditingChatId(null);
+                                setEditingChatName("");
+                              }
+                            }}
+                            className="w-full text-sm font-medium text-black bg-white border border-black rounded px-2 py-1 focus:outline-none"
+                            placeholder="Enter chat name"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <p className="text-sm text-black truncate font-medium" title={chat.firstJobPrompt || chat.name}>
+                            {chat.firstJobPrompt || chat.name}
+                          </p>
+                        )}
+                        <p className="text-xs text-neutral-400 mt-0.5">
+                          {new Date(chat.updatedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditingChat(chat);
+                        }}
+                        className="p-1.5 hover:bg-neutral-200 rounded-lg transition-colors"
+                        title="Rename chat"
+                      >
+                        <svg className="w-4 h-4 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteChat(chat.id);
+                        }}
+                        className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete chat"
+                      >
+                        <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Menu>
+      
+      {/* Left Panel - Library/History (Desktop Only) */}
+      <div className={`hidden lg:flex lg:flex-col bg-white border-r border-neutral-100 flex-shrink-0 transition-all duration-300 ease-in-out ${
+        sidebarOpen ? 'w-[280px]' : 'w-0 overflow-hidden'
+      }`}>
+        <div className={`p-4 border-b border-neutral-100 ${!sidebarOpen ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+          {/* Logo and Close Button */}
+          <div className="flex items-center justify-between mb-4">
+            <Link href="/" className="flex items-center">
+              <span 
+                className="text-xl sm:text-2xl font-bold text-black tracking-tight font-dm-sans"
               >
-                <div className="flex gap-3 p-3">
-                  <div className="flex-shrink-0">
-                    {job.previewImageUrl ? (
+                Hydrilla
+              </span>
+            </Link>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1.5 hover:bg-neutral-100 rounded-lg transition-colors"
+              aria-label="Close sidebar"
+            >
+              <svg className="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <div className={`flex-1 overflow-y-auto p-4 space-y-3 ${!sidebarOpen ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+          {/* Early Access Card - shows when user has pass */}
+          <EarlyAccessCard showWhenHasAccess={true} compact={true} />
+          
+          {/* My Library Section */}
+          <div className="mb-4">
+            <Link 
+              href="/library"
+              className="flex items-center justify-between mb-3 group"
+            >
+              <h3 className="text-sm font-semibold text-black">My Library</h3>
+              <svg className="w-4 h-4 text-neutral-400 group-hover:text-black transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+            {libraryLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="w-4 h-4 spinner"></div>
+              </div>
+            ) : libraryImages.length > 0 ? (
+              <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2 -mx-2 px-2">
+                {libraryImages.map((job: BackendJob) => (
+                  <Link
+                    key={job.id}
+                    href={`/viewer?jobId=${job.id}`}
+                    className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-neutral-200 hover:border-black transition-colors"
+                  >
+                    {job.previewImageUrl || job.imageUrl ? (
                       <img 
-                        src={job.previewImageUrl} 
-                        alt="" 
-                        className="w-12 h-12 rounded-lg object-cover"
+                        src={job.previewImageUrl || job.imageUrl || ''} 
+                        alt="Library image"
+                        className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-lg bg-neutral-200 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      <div className="w-full h-full bg-neutral-100 flex items-center justify-center">
+                        <svg className="w-6 h-6 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                       </div>
                     )}
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-neutral-400 text-center py-4">No images yet</p>
+            )}
+          </div>
+          
+          {/* Current Generating */}
+          {currentGenerating && currentGenerating.status === "generating" && (
+            <div className="mb-4 bg-neutral-50 rounded-xl p-3 border border-neutral-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center border border-neutral-200">
+                  <div className="w-5 h-5 spinner"></div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-black truncate font-medium">{currentGenerating.prompt || "Image to 3D"}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="flex-1 h-1 bg-neutral-200 rounded-full overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-inline-styles */}
+                      <div 
+                        className="h-full bg-black rounded-full transition-all duration-500"
+                        style={{ width: `${currentGenerating.progress}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-xs text-neutral-500">{currentGenerating.progress}%</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    {editingJobId === job.id ? (
-                      <div className="space-y-2">
-                        <label htmlFor={`edit-name-${job.id}`} className="sr-only">Edit job name</label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Chats Section */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-black">Chats</h2>
+              <button
+                onClick={handleNewChat}
+                className="px-3 py-1.5 text-sm bg-black text-white rounded-lg hover:bg-neutral-800 transition-colors"
+              >
+                + New
+              </button>
+            </div>
+            {/* Search Bar */}
+            <input
+              type="text"
+              placeholder="Search chats..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full mb-3 bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm text-black placeholder:text-neutral-400 focus:border-black focus:ring-1 focus:ring-black/10 transition-all"
+            />
+          </div>
+
+          {/* Chats */}
+          {chatsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-5 h-5 spinner"></div>
+            </div>
+          ) : filteredChats.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-neutral-400 text-sm">
+                {searchQuery ? "No results found" : "No chats yet"}
+              </p>
+            </div>
+          ) : (
+            filteredChats.map((chat: Chat) => (
+              <div
+                key={chat.id}
+                className={`bg-neutral-50 rounded-xl border overflow-hidden hover:border-neutral-300 transition-all ${
+                  currentChatId === chat.id ? 'border-black' : 'border-neutral-100'
+                }`}
+              >
+                <div className="flex gap-3 p-3 group">
+                  <div 
+                    className="flex gap-3 flex-1 min-w-0 cursor-pointer"
+                    onClick={() => viewChat(chat)}
+                  >
+                    <div className="flex-shrink-0">
+                      {chat.firstJobPreviewImageUrl ? (
+                        <img 
+                          src={chat.firstJobPreviewImageUrl} 
+                          alt="Chat preview"
+                          className="w-12 h-12 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-neutral-200 flex items-center justify-center">
+                          <svg className="w-5 h-5 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {editingChatId === chat.id ? (
                         <input
-                          id={`edit-name-${job.id}`}
                           type="text"
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleSaveName(job.id);
-                            } else if (e.key === "Escape") {
-                              handleCancelEdit();
+                          value={editingChatName}
+                          onChange={(e) => setEditingChatName(e.target.value)}
+                          onBlur={() => {
+                            if (editingChatName.trim()) {
+                              handleRenameChat(chat.id, editingChatName);
+                            } else {
+                              setEditingChatId(null);
+                              setEditingChatName("");
                             }
                           }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1 text-xs bg-white border border-neutral-300 rounded focus:border-black focus:outline-none"
-                          placeholder="Enter name"
-                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              if (editingChatName.trim()) {
+                                handleRenameChat(chat.id, editingChatName);
+                              }
+                            } else if (e.key === 'Escape') {
+                              setEditingChatId(null);
+                              setEditingChatName("");
+                            }
+                          }}
+                            className="w-full text-xs font-medium text-black bg-white border border-black rounded px-2 py-1 focus:outline-none"
+                            placeholder="Enter chat name"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
                         />
-                        <div className="flex gap-1">
-                  <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSaveName(job.id);
-                            }}
-                            className="px-2 py-0.5 text-[10px] bg-black text-white rounded hover:bg-neutral-800"
-                          >
-                            Save
-                  </button>
-                  <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCancelEdit();
-                            }}
-                            className="px-2 py-0.5 text-[10px] bg-neutral-200 text-black rounded hover:bg-neutral-300"
-                          >
-                            Cancel
-                  </button>
-                </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex items-start justify-between gap-2">
-                          <p 
-                            className="text-xs text-black truncate font-medium flex-1 cursor-pointer"
-                            onClick={() => viewHistoryModel(job)}
-                            title={job.name || job.prompt || "Image to 3D"}
-                          >
-                            {job.name || job.prompt || "Image to 3D"}
-                          </p>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStartEdit(job);
-                            }}
-                            className="p-1 hover:bg-neutral-200 rounded transition-colors flex-shrink-0"
-                            title="Edit name"
-                          >
-                            <svg className="w-3 h-3 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`w-1.5 h-1.5 rounded-full ${getStatusColor(job.status)}`}></span>
-                          <span className="text-xs text-neutral-400">
-                            {getStatusText(job)}
-                          </span>
-                        </div>
-                      </>
-              )}
-            </div>
+                      ) : (
+                        <p 
+                          className="text-sm text-black truncate font-medium"
+                          title={chat.firstJobPrompt || chat.name}
+                        >
+                          {chat.firstJobPrompt || chat.name}
+                        </p>
+                      )}
+                      <p className="text-xs text-neutral-400 mt-0.5">
+                        {new Date(chat.updatedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditingChat(chat);
+                      }}
+                      className="p-1.5 hover:bg-neutral-200 rounded-lg transition-colors"
+                      title="Rename chat"
+                    >
+                      <svg className="w-4 h-4 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteChat(chat.id);
+                      }}
+                      className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete chat"
+                    >
+                      <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
@@ -1401,7 +1915,7 @@ export default function GeneratePage() {
       <div className="flex-1 flex flex-col min-h-0 relative">
         {/* Top Bar - Logo and Profile */}
         <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 bg-white/95 backdrop-blur-sm border-b border-neutral-100 lg:bg-transparent lg:border-b-0 pointer-events-none">
-          {/* Left: Hamburger Menu, Logo, and Toggle Button */}
+          {/* Left: Hamburger Menu, Toggle Button, and Logo (when sidebar closed) */}
           <div className="flex items-center gap-2 sm:gap-3 pointer-events-auto">
             {/* Mobile Menu Button */}
             <HamburgerMenu 
@@ -1409,241 +1923,45 @@ export default function GeneratePage() {
               className="lg:hidden"
             />
             
-            {/* Sidebar Toggle Button (Desktop) */}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg hover:bg-neutral-100 transition-colors"
-              aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-            >
-              {sidebarOpen ? (
-                <svg 
-                  className="w-5 h-5 text-black" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor" 
-                  strokeWidth={2}
+            {/* Desktop: Show Hydrilla logo and toggle button when sidebar is closed */}
+            {!sidebarOpen && (
+              <>
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="hidden lg:flex items-center"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg 
-                  className="w-5 h-5 text-black" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor" 
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
-            
-            {/* Hydrilla Logo (shown on mobile and when sidebar closed on desktop) */}
-            <Link href="/" className={`flex items-center ${!sidebarOpen ? '' : 'lg:hidden'}`}>
-              <span 
-                className="text-xl sm:text-2xl font-bold text-black tracking-tight font-dm-sans"
-              >
-                Hydrilla
-              </span>
-            </Link>
-          </div>
-          
-          {/* Right: Library Button and Profile Icon */}
-          <div className="pointer-events-auto flex items-center gap-2 sm:gap-3">
-            <SignedIn>
-              <Link
-                href="/library"
-                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-neutral-100 text-black text-xs sm:text-sm font-medium hover:bg-neutral-200 transition-colors"
-                title="Library"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <span className="hidden sm:inline">Library</span>
-              </Link>
-              <PremiumUserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  elements: {
-                    avatarBox: "w-8 h-8 sm:w-9 sm:h-9 border-2 border-neutral-200",
-                  },
-                }}
-              />
-            </SignedIn>
-          </div>
-        </div>
-        
-        {/* Mobile Menu Button (old position - keeping for backward compatibility but hidden) */}
-        <div className="lg:hidden absolute top-4 left-4 z-10 opacity-0 pointer-events-none">
-          <HamburgerMenu 
-            onClick={() => setShowMenu(true)}
-          />
-        </div>
-        
-        {/* Mobile Menu */}
-        <Menu isOpen={showMenu} onClose={() => setShowMenu(false)}>
-          <div className="space-y-4">
-            {/* Early Access Card - shows when user has pass */}
-            <EarlyAccessCard showWhenHasAccess={true} compact={true} />
-            
-            <div>
-              <h3 className="text-sm font-semibold text-black mb-3">My Generations</h3>
-              {/* Search Bar */}
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm text-black placeholder:text-neutral-400 focus:border-black focus:ring-1 focus:ring-black/10 transition-all"
-                aria-label="Search generations"
-                title="Search generations"
-              />
-            </div>
-            
-            {/* Current Generating */}
-            {currentGenerating && currentGenerating.status === "generating" && (
-              <div className="mb-4 bg-neutral-50 rounded-xl p-3 border border-neutral-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center border border-neutral-200">
-                    <div className="w-5 h-5 spinner"></div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-black truncate font-medium">{currentGenerating.prompt || "Image to 3D"}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex-1 h-1 bg-neutral-200 rounded-full overflow-hidden">
-                        {/* eslint-disable-next-line @next/next/no-inline-styles */}
-                        <div 
-                          className="h-full bg-black rounded-full transition-all duration-500"
-                          style={{ width: `${currentGenerating.progress}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-xs text-neutral-500">{currentGenerating.progress}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* History */}
-            {historyLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="w-5 h-5 spinner"></div>
-              </div>
-            ) : filteredHistory.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-neutral-400 text-sm">
-                  {searchQuery ? "No results found" : "No generations yet"}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {filteredHistory.slice(0, 10).map((job) => (
-                  <div
-                    key={job.id}
-                    onClick={() => {
-                      viewHistoryModel(job);
-                      setShowMenu(false);
-                    }}
-                    className="bg-neutral-50 rounded-xl p-3 border border-neutral-100 hover:border-neutral-300 transition-all cursor-pointer"
+                  <span 
+                    className="text-xl sm:text-2xl font-bold text-black tracking-tight font-dm-sans"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0">
-                        {job.previewImageUrl ? (
-                          <img src={job.previewImageUrl} alt="" className="w-14 h-14 rounded-lg object-cover" />
-                        ) : (
-                          <div className="w-14 h-14 rounded-lg bg-neutral-200 flex items-center justify-center">
-                            <svg className="w-6 h-6 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        {editingJobId === job.id ? (
-                          <div className="space-y-2">
-                            <label htmlFor={`edit-name-menu-${job.id}`} className="sr-only">Edit job name</label>
-                            <input
-                              id={`edit-name-menu-${job.id}`}
-                              type="text"
-                              value={editingName}
-                              onChange={(e) => setEditingName(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleSaveName(job.id);
-                                } else if (e.key === "Escape") {
-                                  handleCancelEdit();
-                                }
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-full px-2 py-1 text-sm bg-white border border-neutral-300 rounded focus:border-black focus:outline-none"
-                              placeholder="Enter name"
-                              autoFocus
-                            />
-                            <div className="flex gap-1">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSaveName(job.id);
-                                }}
-                                className="px-2 py-1 text-xs bg-black text-white rounded hover:bg-neutral-800"
-                              >
-                                Save
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCancelEdit();
-                                }}
-                                className="px-2 py-1 text-xs bg-neutral-200 text-black rounded hover:bg-neutral-300"
-                              >
-                                Cancel
-                              </button>
-                  </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="flex items-start justify-between gap-2">
-                              <p 
-                                className="text-sm text-black truncate font-medium flex-1"
-                                title={job.name || job.prompt || "Image to 3D"}
-                              >
-                                {job.name || job.prompt || "Image to 3D"}
-                              </p>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleStartEdit(job);
-                                }}
-                                className="p-1 hover:bg-neutral-200 rounded transition-colors flex-shrink-0"
-                                title="Edit name"
-                              >
-                                <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className={`w-2 h-2 rounded-full ${getStatusColor(job.status)}`}></span>
-                              <span className="text-xs text-neutral-500">
-                                {job.previewImageUrl && !job.resultGlbUrl && job.status === "DONE" 
-                                  ? "Done" 
-                                  : job.status === "DONE" 
-                                    ? "Completed" 
-                                    : getStatusText(job)}
-                              </span>
-                            </div>
-                          </>
-                )}
-              </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
+                    Hydrilla
+                  </span>
+                </button>
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg hover:bg-neutral-100 transition-colors"
+                  aria-label="Open sidebar"
+                >
+                  <svg className="w-5 h-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
-        </Menu>
+
+          {/* Right: My Library and Profile */}
+          <div className="flex items-center gap-3 sm:gap-4 pointer-events-auto">
+            <Link 
+              href="/library"
+              className="text-sm sm:text-base font-medium text-black hover:text-neutral-600 transition-colors"
+            >
+              My Library
+            </Link>
+            <PremiumUserButton />
+          </div>
+        </div>
         
-         <div className="flex-1 flex flex-col min-h-0 max-w-4xl mx-auto w-full pt-14 sm:pt-16">
+        <div className="flex-1 flex flex-col min-h-0 max-w-4xl mx-auto w-full pt-14 sm:pt-16">
            {chatMessages.length === 0 ? (
              /* Empty State - Centered Prompt Box */
              <div className="flex-1 flex items-center justify-center px-4 py-8">
@@ -1675,9 +1993,9 @@ export default function GeneratePage() {
              </div>
            ) : (
              /* Chat Messages View */
-             <div className="flex-1 flex flex-col h-full">
+             <div className="flex-1 flex flex-col min-h-0">
                {/* Chat Messages Area - Scrollable */}
-               <div className="flex-1 overflow-y-auto px-4 py-6 scroll-smooth">
+               <div className="flex-1 overflow-y-auto px-4 py-6 min-h-0">
                  <div className="space-y-4 w-full">
                    {chatMessages.map((message) => renderChatMessage(message))}
                    <div ref={chatEndRef} />
@@ -1713,7 +2031,7 @@ export default function GeneratePage() {
              </div>
            )}
          </div>
-        </div>
       </div>
+    </div>
   );
 }
