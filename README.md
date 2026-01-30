@@ -131,19 +131,28 @@ CLERK_SECRET_KEY=sk_test_...
 - Preview image generation before 3D generation
 - Real-time progress tracking
 
-### 3. Job Library
+### 3. Chat Interface
+- ChatGPT-like conversation interface
+- Group multiple jobs into chats
+- Search chats by name or prompt
+- Rename and delete chats
+- View chat history with prompts and results
+- Sidebar with collapsible chat list
+- My Library section with horizontal scrolling image gallery
+
+### 4. Job Library
 - View all generated jobs
 - Filter by status
 - Rename jobs
 - Delete jobs
 - View job details
 
-### 4. 3D Viewer
+### 5. 3D Viewer
 - Interactive 3D model viewer (Three.js)
 - Rotate, zoom, pan controls
 - Download 3D models (.glb format)
 
-### 5. Queue Information
+### 6. Queue Information
 - Real-time queue position
 - Estimated wait time
 - Jobs ahead in queue
@@ -155,11 +164,15 @@ Landing page with hero section, features, and call-to-action.
 
 ### `/generate` - Generation Page
 Main interface for generating 3D models:
+- ChatGPT-like chat interface
 - Text prompt input
 - Image upload
 - Preview generation
 - 3D generation trigger
 - Progress tracking
+- Sidebar with chat list and My Library
+- Search functionality for chats
+- Chat management (rename, delete)
 
 ### `/library` - Job Library
 View all user's generated jobs:
@@ -207,6 +220,13 @@ fetchStatus(jobId: string)
 
 // Get user's job history
 fetchHistory()
+
+// Chat management
+fetchChats()                    // Get all chats
+fetchChat(chatId)              // Get chat with jobs
+createChat(name?)              // Create new chat
+updateChatName(chatId, name)   // Rename chat
+deleteChat(chatId)             // Delete chat
 
 // Upload image
 uploadImage(file: File)
