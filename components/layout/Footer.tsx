@@ -119,11 +119,11 @@ export default function Footer() {
                 CONTACT
               </h3>
               <a 
-                href="mailto:hi@hydrilla.ai" 
+                href="mailto:founders@hydrilla.co" 
                 className="text-xl sm:text-2xl lg:text-3xl font-bold text-black hover:text-gray-700 transition-colors block"
                 style={{ fontFamily: 'var(--font-dm-sans), DM Sans, sans-serif' }}
               >
-                hi@hydrilla.ai
+                founders@hydrilla.co
               </a>
             </div>
           </div>

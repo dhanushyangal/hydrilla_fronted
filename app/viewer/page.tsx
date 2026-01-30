@@ -15,6 +15,7 @@ const POLL_INTERVAL = 5000;
 function ViewerContent() {
   const searchParams = useSearchParams();
   const jobId = searchParams.get("jobId") || "";
+  const mode = searchParams.get("mode") || ""; // "image" = show image view
   const [job, setJob] = useState<Job | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
@@ -177,12 +178,15 @@ function ViewerContent() {
 
   const glbUrl = job ? getGlbUrl(job) : null;
   const previewUrl = job ? getPreviewImageUrl(job) : null;
+  const showImageMode = mode === "image" || (job?.status === "completed" && !glbUrl && !!previewUrl);
 
   return (
     <div className="space-y-6 px-4 lg:px-8 py-6 max-w-6xl mx-auto pt-20 sm:pt-24">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-black">3D Model Viewer</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-black">
+            {showImageMode ? "Image Viewer" : "3D Model Viewer"}
+          </h1>
           <p className="text-gray-600 mt-1 text-sm sm:text-base">
             Job ID: <code className="bg-gray-100 px-2 py-1 rounded text-black text-xs sm:text-sm">{jobId}</code>
           </p>
@@ -244,7 +248,42 @@ function ViewerContent() {
 
       {job && job.status === "completed" && (
         <div className="space-y-6">
-          {glbUrl ? (
+          {showImageMode && previewUrl ? (
+            <>
+              <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+                <div className="relative w-full aspect-square max-h-[70vh] bg-gray-100 flex items-center justify-center p-4">
+                  <img
+                    src={previewUrl}
+                    alt={job.result?.prompt || "Generated image"}
+                    className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
+                  />
+                </div>
+              </div>
+              {job.result?.prompt && (
+                <p className="text-sm text-gray-600 line-clamp-3">{job.result.prompt}</p>
+              )}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 flex-wrap">
+                <a
+                  href={previewUrl}
+                  download
+                  className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-black text-white font-medium hover:bg-gray-900 transition-all text-sm sm:text-base"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download Image
+                </a>
+                <a
+                  href="/library"
+                  className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-all text-sm sm:text-base"
+                >
+                  ← Back to Library
+                </a>
+              </div>
+            </>
+          ) : glbUrl ? (
             <>
               <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
                 <ThreeViewer glbUrl={glbUrl} />
